@@ -132,24 +132,89 @@ function uniqueZoneOptions(features) {
 function populateZoneSelect(features) {
   const previous = zoneSelect.value;
   zoneSelect.replaceChildren(new Option('Alle beboerzoner', ''));
-
   for (const zone of uniqueZoneOptions(features)) {
-    const rule = zoneParkingRule(zone.code);
-    const name = zone.name ? `${zone.name} (${zone.code})` : zone.code;
-
-    let suffix;
-    if (rule.timed) {
-      const hours = TIME_LIMIT_RULES[zone.code]?.hours;
-      suffix = hours ? `🟠 ${name} · Gratis ${hours} t` : `🟠 ${name} · Gratis`;
-    } else {
-      suffix = `🟣 ${name} · Betaling`;
-    }
-
-    zoneSelect.add(new Option(suffix, zone.code));
+    zoneSelect.add(new Option(zone.name ? `${zone.name} (${zone.code})` : zone.code, zone.code));
   }
-
   if ([...zoneSelect.options].some(option => option.value === previous)) zoneSelect.value = previous;
 }
+
+const zonePickerBtn = document.getElementById('zonePickerBtn');
+const zonePickerLabel = document.getElementById('zonePickerLabel');
+const zonePickerMenu = document.getElementById('zonePickerMenu');
+
+function compactRuleLabel(code) {
+  const rule = zoneParkingRule(code);
+  if (!rule.timed) return 'Betaling';
+  const hours = TIME_LIMIT_RULES[code]?.hours;
+  return hours ? `Gratis ${hours} t` : 'Gratis';
+}
+
+function compactRuleClass(code) {
+  return zoneParkingRule(code).timed ? 'is-free' : 'is-paid';
+}
+
+function syncZonePickerLabel() {
+  const selected = zoneSelect.selectedOptions?.[0];
+  zonePickerLabel.textContent = selected?.value
+    ? selected.textContent
+    : 'Alle beboerzoner';
+}
+
+function buildCompactZonePicker(features) {
+  zonePickerMenu.replaceChildren();
+
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = 'zone-picker-option is-all';
+  all.dataset.value = '';
+  all.setAttribute('role', 'option');
+  all.innerHTML = '<span class="zone-dot is-all-dot"></span><span class="zone-option-main">Alle beboerzoner</span>';
+  zonePickerMenu.appendChild(all);
+
+  for (const zone of uniqueZoneOptions(features)) {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'zone-picker-option';
+    option.dataset.value = zone.code;
+    option.setAttribute('role', 'option');
+
+    const name = zone.name || zone.code;
+    option.innerHTML = `
+      <span class="zone-dot ${compactRuleClass(zone.code)}"></span>
+      <span class="zone-option-main"><strong>${zone.code}</strong><span>${name}</span></span>
+      <span class="zone-option-rule">${compactRuleLabel(zone.code)}</span>
+    `;
+    zonePickerMenu.appendChild(option);
+  }
+
+  zonePickerBtn.disabled = false;
+  syncZonePickerLabel();
+}
+
+zonePickerBtn.addEventListener('click', () => {
+  const opening = zonePickerMenu.hidden;
+  zonePickerMenu.hidden = !opening;
+  zonePickerBtn.setAttribute('aria-expanded', String(opening));
+});
+
+zonePickerMenu.addEventListener('click', (event) => {
+  const option = event.target.closest('.zone-picker-option');
+  if (!option) return;
+
+  zoneSelect.value = option.dataset.value || '';
+  zoneSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  syncZonePickerLabel();
+  zonePickerMenu.hidden = true;
+  zonePickerBtn.setAttribute('aria-expanded', 'false');
+});
+
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('#zonePicker') && !zonePickerMenu.hidden) {
+    zonePickerMenu.hidden = true;
+    zonePickerBtn.setAttribute('aria-expanded', 'false');
+  }
+});
+
 
 function styleForFeature(feature) {
   const selected = zoneSelect.value;
