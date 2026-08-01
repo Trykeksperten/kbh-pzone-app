@@ -309,7 +309,7 @@ function updateZoneMessage(lat, lng) {
     const name = featureName(zone);
     const rule = zoneParkingRule(code);
     setLocationCopy(
-      name ? `Du er i ${name} (${code}) Zonen` : `Du er i ${code} Zonen`,
+      name ? `${name} (${code})` : `${code}`,
       `${rule.short}. ${rule.detail}`
     );
     setMapStatus(
@@ -446,7 +446,7 @@ async function gpsErrorDetails(error) {
 async function geolocationError(error) {
   const details = await gpsErrorDetails(error);
   locateBtn.disabled = false;
-  locateBtn.textContent = 'Prøv GPS igen';
+  locateBtn.textContent = 'Prøv igen';
   accuracyText.textContent = error?.code === 1 ? 'GPS adgang afvist' : 'GPS ikke tilgængelig';
   accuracyText.dataset.state = 'error';
   setLocationCopy(details.title, details.text);
@@ -479,7 +479,7 @@ async function locate() {
   }
 
   locateBtn.disabled = true;
-  locateBtn.textContent = 'Finder din position…';
+  locateBtn.textContent = 'Finder…';
   accuracyText.textContent = 'GPS søger…';
   accuracyText.dataset.state = 'loading';
 
@@ -487,7 +487,7 @@ async function locate() {
     const position = await getPositionRobustly();
     setUserPosition(position, true);
     locateBtn.disabled = false;
-    locateBtn.textContent = 'Opdater min position';
+    locateBtn.textContent = 'Opdater';
   } catch (error) {
     await geolocationError(error);
   }
