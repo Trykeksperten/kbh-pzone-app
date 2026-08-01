@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f5f2" />
+  <meta name="theme-color" content="#f3f4f6" />
   <meta name="description" content="Se din GPS-position og hvilken beboerlicenszone i København du befinder dig i." />
   <title>Min P-zone København</title>
   <link rel="preconnect" href="https://unpkg.com" />
@@ -13,53 +13,70 @@
 </head>
 <body>
   <main class="app-shell">
-    <header class="top-card" aria-live="polite">
-      <div class="eyebrow">KØBENHAVN · BEBOERLICENS</div>
-      <h1 id="zoneTitle">Find din P-zone</h1>
-      <p id="zoneText">Se alle beboerlicenszoner på kortet, eller brug din GPS for automatisk at finde den zone, du står i.</p>
-
-      <div class="meta-row" aria-label="Status">
-        <span id="accuracyText">GPS ikke startet</span>
-        <span id="dataStatus" data-state="loading">Henter zoner…</span>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <div>
+          <div class="eyebrow">KØBENHAVN · BEBOERLICENS</div>
+          <div class="brand-name">P-zone København</div>
+        </div>
       </div>
-
-      <div class="action-row">
-        <button id="locateBtn" class="primary-btn" type="button">Find min position</button>
-        <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
-      </div>
+      <div id="dataStatus" class="data-pill" data-state="loading">Henter zoner…</div>
     </header>
 
+    <section class="status-card" aria-live="polite">
+      <div class="status-copy">
+        <div class="status-kicker">DIN PARKERINGSZONE</div>
+        <h1 id="zoneTitle">Find din P-zone</h1>
+        <p id="zoneText">Se alle beboerlicenszoner på kortet, eller brug din GPS for automatisk at finde den zone, du står i.</p>
+      </div>
+
+      <div class="status-actions">
+        <button id="locateBtn" class="primary-btn" type="button">
+          <span class="location-icon" aria-hidden="true">◎</span>
+          Find min position
+        </button>
+        <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
+      </div>
+
+      <div class="status-meta">
+        <span id="accuracyText">GPS ikke startet</span>
+      </div>
+    </section>
+
     <section class="map-card" aria-label="Kort over beboerlicenszoner">
-      <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
-      <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">◎</button>
-      <div class="map-legend" aria-hidden="true">
-        <span><i class="legend-line"></i> Zone</span>
-        <span><i class="legend-dot"></i> Din position</span>
+      <div class="map-heading">
+        <div>
+          <span class="section-label">KORT</span>
+          <strong>Beboerlicenszoner</strong>
+        </div>
+        <label class="mini-switch" for="zonesToggle">
+          <span>Zonegrænser</span>
+          <input id="zonesToggle" type="checkbox" checked disabled />
+        </label>
+      </div>
+
+      <div class="map-frame">
+        <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
+        <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">◎</button>
+        <div class="map-legend" aria-hidden="true">
+          <span><i class="legend-line"></i> Zone</span>
+          <span><i class="legend-dot"></i> Din position</span>
+        </div>
       </div>
     </section>
 
     <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
 
     <section class="controls-card" aria-label="Kortindstillinger">
-      <label class="control-row" for="zoneSelect">
-        <span>
-          <strong>Fremhæv zone</strong>
-          <small>Virker uden GPS. Vælg fx VB, IN eller YN.</small>
-        </span>
-        <select id="zoneSelect" disabled>
-          <option value="">Indlæser zoner…</option>
-        </select>
-      </label>
-
-      <div class="divider"></div>
-
-      <label class="control-row switch-row" for="zonesToggle">
-        <span>
-          <strong>Vis zonegrænser</strong>
-          <small>Vis eller skjul kommunens beboerlicenszoner.</small>
-        </span>
-        <input id="zonesToggle" type="checkbox" checked disabled />
-      </label>
+      <div class="control-copy">
+        <span class="section-label">ZONEVÆLGER</span>
+        <strong>Fremhæv en zone</strong>
+        <small>Vælg en zone for at zoome til den. GPS er ikke nødvendig.</small>
+      </div>
+      <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
+        <option value="">Indlæser zoner…</option>
+      </select>
     </section>
 
     <footer class="footer-copy">
