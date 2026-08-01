@@ -97,6 +97,7 @@ let currentPosition = null;
 let userMarker = null;
 let accuracyCircle = null;
 let activeGpsZoneCode = '';
+let pinnedZoneCode = '';
 let dataLoadState = 'loading';
 
 function setDataState(state, message) {
@@ -155,9 +156,16 @@ function compactRuleClass(code) {
 
 function syncZonePickerLabel() {
   const selected = zoneSelect.selectedOptions?.[0];
-  zonePickerLabel.textContent = selected?.value
-    ? selected.textContent
-    : 'Alle beboerzoner';
+  const code = selected?.value || '';
+
+  if (!code) {
+    zonePickerLabel.textContent = 'Alle beboerzoner';
+    return;
+  }
+
+  const option = uniqueZoneOptions(zoneFeatures).find(zone => zone.code === code);
+  const name = option?.name || code;
+  zonePickerLabel.textContent = `${name} (${code}) · ${compactRuleLabel(code)}`;
 }
 
 function buildCompactZonePicker(features) {
@@ -202,6 +210,7 @@ zonePickerMenu.addEventListener('click', (event) => {
   if (!option) return;
 
   zoneSelect.value = option.dataset.value || '';
+  pinnedZoneCode = '';
   zoneSelect.dispatchEvent(new Event('change', { bubbles: true }));
   syncZonePickerLabel();
   zonePickerMenu.hidden = true;
@@ -327,15 +336,20 @@ function redrawZones() {
       const name = featureName(feature);
       const rule = zoneParkingRule(code);
       layer.bindTooltip(
-        `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}`,
+        `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}${rule.timed ? `<br><span>${compactRuleLabel(code)}</span>` : ''}`,
         {
-          sticky: true,
+          sticky: !pinnedZoneCode,
+          permanent: pinnedZoneCode === code,
+          interactive: true,
           direction: 'top',
           opacity: 0.96
         }
       );
+
       layer.on('click', () => {
+        pinnedZoneCode = pinnedZoneCode === code ? '' : code;
         zoneSelect.value = code;
+        syncZonePickerLabel();
         handleZoneSelection(true);
       });
     }
@@ -355,6 +369,7 @@ function boundsForCode(code) {
 
 function handleZoneSelection(zoom = true) {
   const code = zoneSelect.value;
+  syncZonePickerLabel();
   redrawZones();
   if (!code) {
     setMapStatus('Alle beboerlicenszoner vises på kortet.');
@@ -625,6 +640,42 @@ async function loadZones({ fit = true } = {}) {
   setMapStatus('Kunne ikke hente kommunens zonedata. Tryk “Prøv zonedata igen”.', 'error');
   return false;
 }
+
+
+function openParkingApp(appUrl, fallbackUrl) {
+  let leftPage = false;
+  let fallbackTimer = null;
+
+  const cancelFallback = () => {
+    leftPage = true;
+    if (fallbackTimer) clearTimeout(fallbackTimer);
+  };
+
+  const onVisibility = () => {
+    if (document.hidden) cancelFallback();
+  };
+
+  document.addEventListener('visibilitychange', onVisibility, { once: true });
+  window.addEventListener('pagehide', cancelFallback, { once: true });
+
+  // Give iOS a moment to hand the custom URL scheme to the installed app.
+  window.location.href = appUrl;
+
+  fallbackTimer = setTimeout(() => {
+    if (!leftPage && !document.hidden) {
+      window.location.href = fallbackUrl;
+    }
+  }, 1200);
+}
+
+document.querySelectorAll('.payment-app-link').forEach(button => {
+  button.addEventListener('click', () => {
+    const appUrl = button.dataset.appUrl;
+    const fallbackUrl = button.dataset.fallbackUrl;
+    if (!appUrl || !fallbackUrl) return;
+    openParkingApp(appUrl, fallbackUrl);
+  });
+});
 
 locateBtn.addEventListener('click', locate);
 recenterBtn.addEventListener('click', () => {
