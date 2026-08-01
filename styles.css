@@ -175,19 +175,6 @@ h1 {
   background: var(--surface);
   box-shadow: var(--shadow-card);
 }
-.map-topbar {
-  min-height: 59px;
-  padding: 11px 15px 10px 17px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--line);
-}
-.map-topbar > div { display: grid; gap: 3px; }
-.map-topbar strong { font-size: 14px; letter-spacing: -.015em; }
-.zone-toggle { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10.5px; font-weight: 700; }
-.zone-toggle input { width: 21px; height: 21px; accent-color: #111827; }
 
 .map-stage { position: relative; overflow: hidden; background: #e5e7eb; }
 #map {
@@ -348,8 +335,6 @@ select:disabled, input:disabled { opacity: .5; }
   #zoneText { font-size: 11.5px; }
 
 
-  .map-topbar { padding-left: 14px; padding-right: 11px; }
-  .zone-toggle span { display: none; }
   #map { height: 57dvh; min-height: 445px; }
 
   .zone-sheet { align-items: stretch; flex-direction: column; gap: 10px; }
@@ -383,5 +368,89 @@ select:disabled, input:disabled { opacity: .5; }
   }
   .compact-locate {
     width: 100%;
+  }
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.map-card .map-stage:first-of-type {
+  border-radius: 23px 23px 0 0;
+}
+@media (max-width: 560px) {
+  .map-card .map-stage:first-of-type {
+    border-radius: 19px 19px 0 0;
+  }
+}
+
+/* Zonevælger flyttet op som kortets kompakte topbjælke */
+.zone-sheet-top {
+  border-top: 0;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+  border-radius: 23px 23px 0 0;
+}
+.zone-sheet-top + .sr-only + .map-stage {
+  border-radius: 0;
+}
+@media (max-width: 560px) {
+  .zone-sheet-top {
+    border-radius: 19px 19px 0 0;
+  }
+}
+
+/* Mere kompakt "Du er i … zonen"-visning */
+.position-card,
+.location-card,
+.result-card {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.position-card h1,
+.position-card h2,
+.position-card h3,
+.location-card h1,
+.location-card h2,
+.location-card h3,
+.result-card h1,
+.result-card h2,
+.result-card h3,
+#positionTitle,
+#zoneResultTitle {
+  font-size: clamp(1.25rem, 4.5vw, 1.65rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.025em;
+  margin-bottom: 6px !important;
+}
+
+@media (max-width: 560px) {
+  .position-card,
+  .location-card,
+  .result-card {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .position-card h1,
+  .position-card h2,
+  .position-card h3,
+  .location-card h1,
+  .location-card h2,
+  .location-card h3,
+  .result-card h1,
+  .result-card h2,
+  .result-card h3,
+  #positionTitle,
+  #zoneResultTitle {
+    font-size: 1.28rem !important;
   }
 }
