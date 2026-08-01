@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Min P-zone København</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="top-card" aria-live="polite">
+      <div class="eyebrow">KØBENHAVN · BEBOERLICENS</div>
+      <h1 id="zoneTitle">Find din P-zone</h1>
+      <p id="zoneText">Tryk på knappen for at bruge din GPS-position.</p>
+      <div class="meta-row">
+        <span id="accuracyText">GPS ikke startet</span>
+        <span id="dataStatus">Indlæser zoner…</span>
+      </div>
+      <button id="locateBtn" class="primary-btn" type="button">📍 Find min position</button>
+    </section>
+
+    <section class="map-wrap" aria-label="Kort over din placering og parkeringszoner">
+      <div id="map"></div>
+      <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kort på min position" title="Centrer på min position">◎</button>
+    </section>
+
+    <section class="controls-card">
+      <label class="switch-row">
+        <span>
+          <strong>Vis zonegrænser</strong>
+          <small>Beboerlicenszoner fra Københavns Kommunes åbne data</small>
+        </span>
+        <input id="zonesToggle" type="checkbox" checked />
+      </label>
+      <div class="divider"></div>
+      <label class="select-row" for="zoneSelect">
+        <span>
+          <strong>Fremhæv en zone</strong>
+          <small>Valgfrit – GPS finder stadig din zone automatisk</small>
+        </span>
+        <select id="zoneSelect">
+          <option value="">Alle zoner</option>
+        </select>
+      </label>
+    </section>
+
+    <p class="disclaimer">
+      Vejledende zonevisning. Lokal skiltning og særlige vejregler kan afvige; tjek altid skiltningen dér, hvor du parkerer.
+    </p>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="./app.js"></script>
+</body>
+</html>
