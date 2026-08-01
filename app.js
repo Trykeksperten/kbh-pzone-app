@@ -210,7 +210,7 @@ zonePickerMenu.addEventListener('click', (event) => {
   if (!option) return;
 
   zoneSelect.value = option.dataset.value || '';
-  pinnedZoneCode = '';
+  closePinnedZoneTooltip();
   zoneSelect.dispatchEvent(new Event('change', { bubbles: true }));
   syncZonePickerLabel();
   zonePickerMenu.hidden = true;
@@ -318,6 +318,45 @@ function addZoneLabels() {
   }
 }
 
+
+function closePinnedZoneTooltip() {
+  if (!zoneLayer || !pinnedZoneCode) {
+    pinnedZoneCode = '';
+    return;
+  }
+
+  zoneLayer.eachLayer(layer => {
+    if (featureCode(layer.feature) === pinnedZoneCode && layer.closeTooltip) {
+      layer.closeTooltip();
+    }
+  });
+  pinnedZoneCode = '';
+}
+
+function refreshZonePresentation() {
+  if (!zoneLayer) return;
+
+  zoneLayer.eachLayer(layer => {
+    if (layer.setStyle) layer.setStyle(styleForFeature(layer.feature));
+  });
+
+  addZoneLabels();
+}
+
+function updateSelectedZoneStatus(code) {
+  if (!code) {
+    setMapStatus('Alle beboerlicenszoner vises på kortet.');
+    return;
+  }
+
+  const option = zoneSelect.options[zoneSelect.selectedIndex];
+  const rule = zoneParkingRule(code);
+  setMapStatus(
+    `${option?.text || code}: ${rule.short}. ${rule.detail}`,
+    rule.timed ? 'warning' : 'success'
+  );
+}
+
 function redrawZones() {
   if (zoneLayer) map.removeLayer(zoneLayer);
   if (timeRestrictionLayer) map.removeLayer(timeRestrictionLayer);
@@ -339,27 +378,32 @@ function redrawZones() {
       layer.bindTooltip(
         `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}${rule.timed ? `<br><span>${compactRuleLabel(code)}</span>` : ''}`,
         {
-          sticky: !pinnedZoneCode,
-          permanent: pinnedZoneCode === code,
+          sticky: false,
+          permanent: false,
           interactive: true,
           direction: 'top',
           opacity: 0.96
         }
       );
 
-      layer.on('click', () => {
+      layer.on('click', event => {
         const wasPinned = pinnedZoneCode === code;
 
-        // Første tryk: vis den faste infoboks.
-        // Andet tryk på samme zone: fjern infoboksen igen.
-        pinnedZoneCode = wasPinned ? '' : code;
+        // Luk en eventuel tidligere fast infoboks uden at genopbygge kortlaget.
+        closePinnedZoneTooltip();
 
         // Hold "Se zone" synkroniseret med det, brugeren trykker på.
         zoneSelect.value = code;
         syncZonePickerLabel();
 
-        // VIGTIGT: klik på kortet må ikke zoome ind og skjule de andre zoner.
-        handleZoneSelection(false);
+        if (!wasPinned) {
+          pinnedZoneCode = code;
+          layer.openTooltip(event.latlng);
+        }
+
+        // Opdater kun styles/labels. Selve polygonlaget bliver stående urørt.
+        refreshZonePresentation();
+        updateSelectedZoneStatus(code);
       });
     }
   }).addTo(map);
@@ -379,19 +423,17 @@ function boundsForCode(code) {
 function handleZoneSelection(zoom = true) {
   const code = zoneSelect.value;
   syncZonePickerLabel();
-  redrawZones();
+
+  // Manuelt valg i zonevælgeren lukker en evt. fast kort-infoboks.
+  closePinnedZoneTooltip();
+  refreshZonePresentation();
+  updateSelectedZoneStatus(code);
+
   if (!code) {
-    setMapStatus('Alle beboerlicenszoner vises på kortet.');
     if (zoom && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [18, 18], maxZoom: 13 });
     return;
   }
 
-  const option = zoneSelect.options[zoneSelect.selectedIndex];
-  const rule = zoneParkingRule(code);
-  setMapStatus(
-    `${option.text}: ${rule.short}. ${rule.detail}`,
-    rule.timed ? 'warning' : 'success'
-  );
   const bounds = boundsForCode(code);
   if (zoom && bounds) map.fitBounds(bounds, { padding: [26, 26], maxZoom: 15 });
 }
@@ -404,7 +446,7 @@ function updateZoneMessage(lat, lng) {
 
   const zone = findZone(zoneFeatures, lat, lng);
   activeGpsZoneCode = zone ? featureCode(zone) : '';
-  redrawZones();
+  refreshZonePresentation();
 
   if (zone) {
     const code = activeGpsZoneCode || 'ukendt';
@@ -699,6 +741,25 @@ document.querySelectorAll('.payment-app-link').forEach(button => {
     if (!appUrl || !fallbackUrl) return;
     openParkingApp(appUrl, fallbackUrl);
   });
+});
+
+
+map.on('tooltipopen', event => {
+  const tooltip = event.tooltip;
+  const source = tooltip?._source;
+  if (!source?.feature) return;
+
+  const code = featureCode(source.feature);
+  const element = tooltip.getElement?.();
+  if (!element || !code || pinnedZoneCode !== code) return;
+
+  element.onclick = clickEvent => {
+    clickEvent.stopPropagation();
+    if (pinnedZoneCode !== code) return;
+    source.closeTooltip();
+    pinnedZoneCode = '';
+    refreshZonePresentation();
+  };
 });
 
 locateBtn.addEventListener('click', locate);
