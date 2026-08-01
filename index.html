@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#ff7a00" />
   <meta name="description" content="Find din beboerlicenszone i København med GPS." />
   <title>P-zone København</title>
+
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://tile.openstreetmap.org" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -20,55 +21,40 @@
   <meta name="mobile-web-app-capable" content="yes" />
 </head>
 <body>
-  <main class="app-shell">
-    <header class="app-bar">
-      <div class="brand-wrap">
-        <img class="brand-app-icon" src="/apple-touch-icon.png" alt="" aria-hidden="true" />
-        <div>
-          <div class="brand-title">P-zone København</div>
-          <div class="brand-subtitle">Beboerlicenszoner</div>
-        </div>
-      </div>
-      <span id="dataStatus" class="data-status" data-state="loading">Henter zoner…</span>
+  <main class="app-shell compact-app">
+
+    <header class="compact-header">
+      <img class="brand-app-icon" src="/apple-touch-icon.png" alt="P-zone" />
+      <span id="dataStatus" class="sr-only" data-state="loading">Henter zoner…</span>
     </header>
 
-    <section class="position-card" aria-live="polite">
-      <div class="position-main">
-        <div class="position-copy">
-          
-          <h1 id="zoneTitle">Find din zone</h1>
-          <p id="zoneText">Brug GPS eller vælg en zone på kortet.</p>
-        </div>
+    <section class="compact-zone-row" aria-live="polite">
+      <span class="compact-label">Din zone:</span>
+      <strong id="zoneTitle" class="compact-zone-value">Ikke fundet</strong>
+      <span class="compact-separator">·</span>
+      <span id="accuracyText" class="compact-gps">GPS ikke startet</span>
+      <span class="compact-separator compact-update-separator">·</span>
+      <button id="locateBtn" class="compact-update-btn" type="button">Find</button>
 
-        <button id="locateBtn" class="primary-btn compact-locate" type="button">
-          <span aria-hidden="true">⌖</span>
-          Find min position
-        </button>
-      </div>
-
-      <div class="position-meta">
-        <span id="accuracyText" class="gps-chip">GPS ikke startet</span>
-        <button id="retryDataBtn" class="secondary-btn compact-retry" type="button" hidden>Prøv zonedata igen</button>
-      </div>
+      <p id="zoneText" class="sr-only">Brug GPS eller vælg en zone på kortet.</p>
+      <button id="retryDataBtn" class="sr-only" type="button" hidden>Prøv zonedata igen</button>
     </section>
 
-    <section class="map-card" aria-label="Kort over beboerlicenszoner">
-      <div class="zone-sheet zone-sheet-top">
-        <div class="zone-sheet-copy">
-          
-          <strong>Se en bestemt zone</strong>
-          <small>Tryk på kortet eller vælg en zone. Orange områder er gratis, men tidsbegrænsede.</small>
-        </div>
+    <section class="compact-map-card" aria-label="Kort over beboerlicenszoner">
+      <div class="compact-select-row">
+        <label for="zoneSelect">Se zone:</label>
         <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
           <option value="">Indlæser zoner…</option>
         </select>
       </div>
+
       <input id="zonesToggle" class="sr-only" type="checkbox" checked disabled aria-hidden="true" />
 
       <div class="map-stage">
         <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
 
-        <button id="recenterBtn" class="recenter-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">
+        <button id="recenterBtn" class="recenter-btn" type="button"
+          aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">
           <span aria-hidden="true">⌖</span>
         </button>
 
@@ -77,14 +63,14 @@
           <span><i class="legend-free"></i> Gratis · tidsbegrænset</span>
         </div>
       </div>
-
     </section>
 
-    <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
+    <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">
+      Henter de officielle beboerlicenszoner…
+    </div>
 
     <footer class="app-footer">
-      <p><strong>Data:</strong> Københavns Kommunes åbne GIS-data.</p>
-      <p>Kortet er vejledende. Tjek altid lokal skiltning og afmærkning, hvor du parkerer.</p>
+      <p>Kortet er vejledende. Tjek altid lokal skiltning og afmærkning.</p>
     </footer>
   </main>
 
