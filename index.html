@@ -23,10 +23,8 @@
 <body>
   <main class="app-shell compact-app">
 
-    <header class="compact-header">
-      <img class="brand-app-icon" src="/apple-touch-icon.png" alt="P-zone" />
-      <span id="dataStatus" class="sr-only" data-state="loading">Henter zoner…</span>
-    </header>
+
+    <span id="dataStatus" class="sr-only" data-state="loading">Henter zoner…</span>
 
     <section class="compact-zone-row" aria-live="polite">
       <span class="compact-label">Din zone:</span>
@@ -52,6 +50,8 @@
 
       <div class="map-stage">
         <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
+
+        <img class="map-brand-watermark" src="/apple-touch-icon.png" alt="" aria-hidden="true" />
 
         <button id="recenterBtn" class="recenter-btn" type="button"
           aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">
