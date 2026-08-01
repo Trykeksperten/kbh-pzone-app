@@ -765,3 +765,62 @@ a:focus-visible {
     height: calc(100dvh - 126px);
   }
 }
+
+
+/* Clear compact GPS action */
+.compact-update-separator {
+  display: none;
+}
+
+.compact-update-btn {
+  margin-left: auto;
+  min-height: 30px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 9px;
+  background: #ff7a00;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 820;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(255,122,0,.18);
+}
+
+.compact-update-btn span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.compact-update-btn:hover {
+  background: #eb7100;
+}
+
+.compact-update-btn:active {
+  transform: translateY(1px);
+}
+
+.compact-update-btn:focus-visible {
+  outline: 3px solid rgba(255,122,0,.22);
+  outline-offset: 2px;
+}
+
+@media (max-width: 390px) {
+  .compact-update-btn {
+    min-height: 29px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .compact-zone-row {
+    padding-right: 6px;
+  }
+
+  .compact-zone-value {
+    max-width: 34vw;
+  }
+}
