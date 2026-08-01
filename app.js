@@ -231,7 +231,6 @@ function styleForFeature(feature) {
   const timed = isTimedLicenseZone(code);
   const isSelected = selected && code === selected;
   const isGps = activeGpsZoneCode && code === activeGpsZoneCode;
-  const dimmed = selected && !isSelected;
 
   const baseColor = timed ? '#c87912' : '#b52b72';
   const activeColor = timed ? '#a85f08' : '#a31963';
@@ -246,12 +245,14 @@ function styleForFeature(feature) {
       fillOpacity: isSelected ? 0.22 : 0.14
     };
   }
+
+  // Keep every other zone fully visible even when one zone is active.
   return {
     color: baseColor,
     weight: 2.25,
-    opacity: dimmed ? 0.25 : 0.86,
+    opacity: 0.86,
     fillColor,
-    fillOpacity: dimmed ? 0.012 : 0.055
+    fillOpacity: 0.055
   };
 }
 
