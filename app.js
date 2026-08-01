@@ -76,7 +76,7 @@ function populateZoneSelect(features) {
   const previous = zoneSelect.value;
   zoneSelect.replaceChildren(new Option('Alle beboerzoner', ''));
   for (const zone of uniqueZoneOptions(features)) {
-    zoneSelect.add(new Option(zone.name ? `${zone.code} · ${zone.name}` : zone.code, zone.code));
+    zoneSelect.add(new Option(zone.name ? `${zone.name} (${zone.code})` : zone.code, zone.code));
   }
   if ([...zoneSelect.options].some(option => option.value === previous)) zoneSelect.value = previous;
 }
@@ -203,10 +203,10 @@ function updateZoneMessage(lat, lng) {
     const code = activeGpsZoneCode || 'ukendt';
     const name = featureName(zone);
     setLocationCopy(
-      `Du er i ${code}-zonen`,
-      name ? `${name}. Din GPS-position ligger inden for denne beboerlicenszone.` : 'Din GPS-position ligger inden for denne beboerlicenszone.'
+      name ? `Du er i ${name} (${code}) Zonen` : `Du er i ${code} Zonen`,
+      'Din GPS-position ligger inden for denne beboerlicenszone.'
     );
-    setMapStatus(`GPS-positionen ligger i ${code}-zonen.`, 'success');
+    setMapStatus(name ? `${name} (${code}) er din aktuelle zone.` : `${code} er din aktuelle zone.`, 'success');
   } else {
     setLocationCopy('Du er uden for en beboerzone', 'Din GPS-position ligger ikke i en registreret beboerlicenszone i kommunens datasæt.');
     setMapStatus('GPS-positionen ligger uden for de viste beboerlicenszoner.', 'neutral');
