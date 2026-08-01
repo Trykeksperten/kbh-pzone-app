@@ -348,10 +348,18 @@ function redrawZones() {
       );
 
       layer.on('click', () => {
-        pinnedZoneCode = pinnedZoneCode === code ? '' : code;
+        const wasPinned = pinnedZoneCode === code;
+
+        // Første tryk: vis den faste infoboks.
+        // Andet tryk på samme zone: fjern infoboksen igen.
+        pinnedZoneCode = wasPinned ? '' : code;
+
+        // Hold "Se zone" synkroniseret med det, brugeren trykker på.
         zoneSelect.value = code;
         syncZonePickerLabel();
-        handleZoneSelection(true);
+
+        // VIGTIGT: klik på kortet må ikke zoome ind og skjule de andre zoner.
+        handleZoneSelection(false);
       });
     }
   }).addTo(map);
