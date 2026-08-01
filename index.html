@@ -49,21 +49,12 @@
         <div class="zone-sheet-copy">
           
           <strong>Se en bestemt zone</strong>
-          <small>Vælg en zone for at fremhæve den på kortet.</small>
+          <small>Tryk på kortet eller vælg en zone. Orange områder er gratis, men tidsbegrænsede.</small>
         </div>
         <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
           <option value="">Indlæser zoner…</option>
         </select>
       </div>
-
-      <div class="nearby-parking-bar">
-        <div class="nearby-copy">
-          <strong>Gratis parkering i nærheden</strong>
-          <small>Find de nærmeste tidsbegrænsede gratis zoner.</small>
-        </div>
-        <button id="findFreeBtn" class="nearby-btn" type="button" disabled>Find i nærheden</button>
-      </div>
-
       <input id="zonesToggle" class="sr-only" type="checkbox" checked disabled aria-hidden="true" />
 
       <div class="map-stage">
@@ -73,23 +64,12 @@
           <span aria-hidden="true">⌖</span>
         </button>
 
-        <div class="map-legend" aria-hidden="true">
-          <span><i class="legend-zone"></i> Zone</span>
-          <span><i class="legend-position"></i> Din position</span>
+        <div class="map-legend" aria-label="Kortforklaring">
+          <span><i class="legend-zone"></i> Betaling/licens</span>
+          <span><i class="legend-free"></i> Gratis · tidsbegrænset</span>
         </div>
       </div>
 
-    </section>
-
-    <section id="freeParkingPanel" class="free-parking-panel" hidden aria-live="polite">
-      <div class="free-panel-head">
-        <div>
-          <strong>Gratis parkering i nærheden</strong>
-          <small id="freeParkingSummary">Nærmeste tidsbegrænsede zoner</small>
-        </div>
-        <button id="closeFreePanel" class="icon-btn" type="button" aria-label="Luk">×</button>
-      </div>
-      <div id="freeParkingResults" class="free-results"></div>
     </section>
 
     <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
