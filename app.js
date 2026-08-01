@@ -604,6 +604,7 @@ async function loadZones({ fit = true } = {}) {
       zoneFeatures = features;
       timeRestrictionFeaturesOnMap = restrictions;
       populateZoneSelect(features);
+      buildCompactZonePicker(features);
       setDataState('ready', `${uniqueZoneOptions(features).length} zoner klar`);
       redrawZones();
 
