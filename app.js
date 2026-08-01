@@ -1,13 +1,68 @@
 import {
   featureCode,
   featureName,
+  featureType,
   residentFeatures,
+  timeRestrictionFeatures,
   findZone
 } from './zone-core.js';
 
 const DATA_API = '/api/zones';
 const DIRECT_WFS = 'https://wfs-kbhkort.kk.dk/k101/ows?outputFormat=application%2Fjson&request=GetFeature&service=WFS&srsname=EPSG%3A4326&typeName=k101%3Ap_zoner_kbh&version=1.0.0';
 const COPENHAGEN_CENTER = [55.6761, 12.5683];
+
+const TIME_LIMIT_RULES = Object.freeze({
+  GJ: { hours: 3, window: '08–19', days: 'hverdage' },
+  HS: { hours: 3, window: '08–19', days: 'hverdage' },
+  NV: { hours: 3, window: '08–19', days: 'hverdage' },
+  VS: { hours: 3, window: '08–19', days: 'hverdage' },
+  HA: { hours: 3, window: '08–19', days: 'hverdage' },
+
+  VL: { hours: 3, window: '08–22', days: 'hverdage' },
+  LP: { hours: 3, window: '08–22', days: 'hverdage' },
+  AS: { hours: 3, window: '08–22', days: 'hverdage' },
+  SV: { hours: 3, window: '08–22', days: 'hverdage' },
+  'SØ': { hours: 3, window: '08–22', days: 'hverdage' },
+  GD: { hours: 3, window: '08–22', days: 'hverdage' },
+  'ÅH': { hours: 3, window: '08–22', days: 'hverdage' },
+  BB: { hours: 3, window: '08–22', days: 'hverdage' },
+  KE: { hours: 3, window: '08–22', days: 'hverdage' },
+  VI: { hours: 3, window: '08–22', days: 'hverdage' },
+  RP: { hours: 3, window: '08–22', days: 'hverdage' },
+  SJ: { hours: 3, window: '08–22', days: 'hverdage' },
+
+  HK: { hours: 1, window: '08–17', days: 'mandag–lørdag', special: true }
+});
+
+function zoneParkingRule(code) {
+  const rule = TIME_LIMIT_RULES[code];
+  if (!rule) {
+    return {
+      timed: false,
+      short: 'Betalings-/beboerlicenszone',
+      detail: 'Tjek altid lokal skiltning og afmærkning, da enkelte gader kan have særlige regler.'
+    };
+  }
+
+  if (rule.special) {
+    return {
+      timed: true,
+      short: 'Gratis · tidsbegrænset parkering',
+      detail: `Maks. ${rule.hours} time ${rule.days} kl. ${rule.window}. Den Hvide Kødby har særlige licensregler. Husk p-skive og tjek skiltningen.`
+    };
+  }
+
+  return {
+    timed: true,
+    short: 'Gratis · tidsbegrænset parkering',
+    detail: `Maks. ${rule.hours} timer på ${rule.days} kl. ${rule.window}. Husk p-skive. Weekender og helligdage er uden 3-timersbegrænsningen. En gyldig beboerlicens til zonen fritager fra tidsbegrænsningen.`
+  };
+}
+
+function isTimedLicenseZone(code) {
+  return Boolean(TIME_LIMIT_RULES[code]);
+}
+
 
 const map = L.map('map', {
   zoomControl: true,
@@ -34,7 +89,9 @@ const retryDataBtn = el('retryDataBtn');
 const mapStatus = el('mapStatus');
 
 let zoneFeatures = [];
+let timeRestrictionFeaturesOnMap = [];
 let zoneLayer = null;
+let timeRestrictionLayer = null;
 let labelLayer = null;
 let currentPosition = null;
 let userMarker = null;
@@ -84,26 +141,62 @@ function populateZoneSelect(features) {
 function styleForFeature(feature) {
   const selected = zoneSelect.value;
   const code = featureCode(feature);
+  const timed = isTimedLicenseZone(code);
   const isSelected = selected && code === selected;
   const isGps = activeGpsZoneCode && code === activeGpsZoneCode;
   const dimmed = selected && !isSelected;
 
+  const baseColor = timed ? '#c87912' : '#b52b72';
+  const activeColor = timed ? '#a85f08' : '#a31963';
+  const fillColor = timed ? '#f4a62a' : '#d43a86';
+
   if (isSelected || isGps) {
     return {
-      color: '#a31963',
+      color: activeColor,
       weight: 4,
       opacity: 1,
-      fillColor: '#d43a86',
+      fillColor,
       fillOpacity: isSelected ? 0.22 : 0.14
     };
   }
   return {
-    color: '#b52b72',
+    color: baseColor,
     weight: 2.25,
-    opacity: dimmed ? 0.28 : 0.86,
-    fillColor: '#d43a86',
-    fillOpacity: dimmed ? 0.015 : 0.055
+    opacity: dimmed ? 0.25 : 0.86,
+    fillColor,
+    fillOpacity: dimmed ? 0.012 : 0.055
   };
+}
+
+
+function drawTimeRestrictionLayer() {
+  if (timeRestrictionLayer) map.removeLayer(timeRestrictionLayer);
+  timeRestrictionLayer = null;
+
+  if (!zonesToggle.checked || !timeRestrictionFeaturesOnMap.length) return;
+
+  timeRestrictionLayer = L.geoJSON(
+    { type: 'FeatureCollection', features: timeRestrictionFeaturesOnMap },
+    {
+      style: {
+        color: '#e09a27',
+        weight: 2.2,
+        opacity: 0.82,
+        dashArray: '7 6',
+        fillColor: '#f6c453',
+        fillOpacity: 0.035
+      },
+      onEachFeature(feature, layer) {
+        const name = featureName(feature);
+        layer.bindTooltip(
+          `<strong>Tidsbegrænset parkering</strong>${name ? `<br>${name}` : ''}<br><span>Se skiltning for den konkrete regel</span>`,
+          { sticky: true, direction: 'top', opacity: 0.96 }
+        );
+      }
+    }
+  ).addTo(map);
+
+  if (timeRestrictionLayer.bringToBack) timeRestrictionLayer.bringToBack();
 }
 
 function addZoneLabels() {
@@ -139,22 +232,30 @@ function addZoneLabels() {
 
 function redrawZones() {
   if (zoneLayer) map.removeLayer(zoneLayer);
+  if (timeRestrictionLayer) map.removeLayer(timeRestrictionLayer);
   if (labelLayer) map.removeLayer(labelLayer);
   zoneLayer = null;
+  timeRestrictionLayer = null;
   labelLayer = null;
 
   if (!zonesToggle.checked || !zoneFeatures.length) return;
+
+  drawTimeRestrictionLayer();
 
   zoneLayer = L.geoJSON({ type: 'FeatureCollection', features: zoneFeatures }, {
     style: styleForFeature,
     onEachFeature(feature, layer) {
       const code = featureCode(feature) || 'Ukendt zone';
       const name = featureName(feature);
-      layer.bindTooltip(name ? `<strong>${code}</strong><br>${name}` : `<strong>${code}</strong>`, {
-        sticky: true,
-        direction: 'top',
-        opacity: 0.96
-      });
+      const rule = zoneParkingRule(code);
+      layer.bindTooltip(
+        `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}`,
+        {
+          sticky: true,
+          direction: 'top',
+          opacity: 0.96
+        }
+      );
       layer.on('click', () => {
         zoneSelect.value = code;
         handleZoneSelection(true);
@@ -184,7 +285,11 @@ function handleZoneSelection(zoom = true) {
   }
 
   const option = zoneSelect.options[zoneSelect.selectedIndex];
-  setMapStatus(`${option.text} er fremhævet. GPS er ikke nødvendig for at vælge en zone.`, 'success');
+  const rule = zoneParkingRule(code);
+  setMapStatus(
+    `${option.text}: ${rule.short}. ${rule.detail}`,
+    rule.timed ? 'warning' : 'success'
+  );
   const bounds = boundsForCode(code);
   if (zoom && bounds) map.fitBounds(bounds, { padding: [26, 26], maxZoom: 15 });
 }
@@ -202,11 +307,15 @@ function updateZoneMessage(lat, lng) {
   if (zone) {
     const code = activeGpsZoneCode || 'ukendt';
     const name = featureName(zone);
+    const rule = zoneParkingRule(code);
     setLocationCopy(
       name ? `Du er i ${name} (${code}) Zonen` : `Du er i ${code} Zonen`,
-      'Din GPS-position ligger inden for denne beboerlicenszone.'
+      `${rule.short}. ${rule.detail}`
     );
-    setMapStatus(name ? `${name} (${code}) er din aktuelle zone.` : `${code} er din aktuelle zone.`, 'success');
+    setMapStatus(
+      name ? `${name} (${code}): ${rule.short}.` : `${code}: ${rule.short}.`,
+      rule.timed ? 'warning' : 'success'
+    );
   } else {
     setLocationCopy('Du er uden for en beboerzone', 'Din GPS-position ligger ikke i en registreret beboerlicenszone i kommunens datasæt.');
     setMapStatus('GPS-positionen ligger uden for de viste beboerlicenszoner.', 'neutral');
@@ -411,15 +520,17 @@ async function loadZones({ fit = true } = {}) {
     try {
       const payload = await fetchJsonWithTimeout(endpoint);
       const features = residentFeatures(payload);
+      const restrictions = timeRestrictionFeatures(payload);
       if (!features.length) throw new Error('Ingen beboerzoner i svaret');
 
       zoneFeatures = features;
+      timeRestrictionFeaturesOnMap = restrictions;
       populateZoneSelect(features);
       setDataState('ready', `${uniqueZoneOptions(features).length} zoner klar`);
       redrawZones();
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
-      setMapStatus('Zonekortet er klar. Vælg en zone eller brug GPS.', 'success');
+      setMapStatus('Zonekortet er klar. Orange zoner er gratis, men tidsbegrænsede. Tjek altid skiltningen.', 'success');
       if (currentPosition) updateZoneMessage(...currentPosition);
       return true;
     } catch (error) {
@@ -430,6 +541,7 @@ async function loadZones({ fit = true } = {}) {
 
   console.error('Kunne ikke indlæse zoner:', lastError);
   zoneFeatures = [];
+  timeRestrictionFeaturesOnMap = [];
   setDataState('error', 'Zonedata fejlede');
   setMapStatus('Kunne ikke hente kommunens zonedata. Tryk “Prøv zonedata igen”.', 'error');
   return false;
