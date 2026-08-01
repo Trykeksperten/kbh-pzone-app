@@ -22,13 +22,9 @@
 </head>
 <body>
   <main class="app-shell compact-app">
+    <span id="dataStatus" class="sr-only" data-state="loading">Henter zoner…</span>
 
-    <header class="compact-header">
-      <img class="brand-app-icon" src="/apple-touch-icon.png" alt="P-zone" />
-      <span id="dataStatus" class="sr-only" data-state="loading">Henter zoner…</span>
-    </header>
-
-    <section class="compact-zone-row" aria-live="polite">
+<section class="compact-zone-row" aria-live="polite">
       <span class="compact-label">Din zone:</span>
       <strong id="zoneTitle" class="compact-zone-value">Ikke fundet</strong>
       <span class="compact-separator">·</span>
@@ -60,6 +56,42 @@
 
       <div class="map-stage">
         <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
+
+        <div class="map-brand-actions">
+          <details class="payment-apps">
+            <summary>Betal parkering</summary>
+            <div class="payment-apps-menu">
+              <a href="https://apps.apple.com/dk/app/easypark-din-parkerings-app/id449594317?l=da"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain_url=https://www.easypark.com/" alt="" />
+                <span>EasyPark</span>
+              </a>
+              <a href="https://apps.apple.com/dk/app/q-park/id1477955834?l=da"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain_url=https://www.q-park.dk/" alt="" />
+                <span>Q-Park</span>
+              </a>
+              <a href="https://apps.apple.com/dk/app/apcoa-flow/id1354962285?l=da"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain_url=https://www.apcoa.dk/" alt="" />
+                <span>APCOA FLOW</span>
+              </a>
+              <a href="https://apps.apple.com/dk/app/parkone/id1337008688?l=da"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain_url=https://parkone.dk/" alt="" />
+                <span>ParkOne</span>
+              </a>
+              <a href="https://apps.apple.com/dk/app/parkman-the-parking-app/id505190698"
+                 target="_blank" rel="noopener noreferrer">
+                <img src="https://www.google.com/s2/favicons?sz=64&domain_url=https://parkman.io/" alt="" />
+                <span>ParkMan</span>
+              </a>
+              <small>Tilgængelighed afhænger af den konkrete p-plads.</small>
+            </div>
+          </details>
+
+          <img class="map-brand-watermark" src="/apple-touch-icon.png" alt="" aria-hidden="true" />
+        </div>
 
         <button id="recenterBtn" class="recenter-btn" type="button"
           aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">
