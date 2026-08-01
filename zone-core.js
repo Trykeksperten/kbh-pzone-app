@@ -55,7 +55,27 @@ const RESIDENT_ZONE_NAMES = Object.freeze({
   VA: 'Valby',
   VB: 'Vesterbro',
   YN: 'Ydre Nørrebro',
-  'YØ': 'Ydre Østerbro'
+  'YØ': 'Ydre Østerbro',
+
+  // Licenszoner i områder med tidsbegrænset parkering
+  GJ: 'Grønjord',
+  HS: 'Hellerup Station',
+  VL: 'Vanløse Station',
+  NV: 'Nordvest',
+  VS: 'Valby Syd',
+  HA: 'Havnestad',
+  LP: 'Lergravsparken',
+  AS: 'Amager Strand',
+  SV: 'Sundbyvester',
+  'SØ': 'Sundbyøster',
+  GD: 'Grøndal',
+  'ÅH': 'Ålholm',
+  BB: 'Bispebjerg',
+  KE: 'Kongens Enghave',
+  VI: 'Vigerslev Allé',
+  RP: 'Ryparken',
+  SJ: 'Strandvejen',
+  HK: 'Den Hvide Kødby'
 });
 
 export function featureName(feature) {
@@ -70,12 +90,18 @@ export function featureName(feature) {
   return name && name.toUpperCase() !== code ? name : '';
 }
 
+const OFFICIAL_LICENSE_ZONE_CODES = new Set(Object.keys(RESIDENT_ZONE_NAMES));
+
 export function isResidentZone(feature) {
   const type = featureType(feature).toLowerCase();
-  if (type) {
-    return type.includes('beboerzone') && !type.includes('adressebeboerzone') && !type.includes('adresse');
-  }
-  return /^[A-ZÆØÅ]{2,3}$/.test(featureCode(feature));
+  const code = featureCode(feature);
+
+  // Adressebeboerzoner er tekniske delområder og skal ikke vises som selvstændige zoner.
+  if (type.includes('adressebeboerzone') || type.includes('adresse')) return false;
+
+  // Brug den officielle liste over licenszoner. Det inkluderer både de almindelige
+  // beboerlicenszoner og licenszonerne i områder med tidsbegrænset parkering.
+  return OFFICIAL_LICENSE_ZONE_CODES.has(code);
 }
 
 export function parseMaybeJSON(value) {
@@ -158,6 +184,12 @@ export function residentFeatures(payload) {
   return recordsToFeatures(payload)
     .filter(feature => feature?.geometry && ['Polygon', 'MultiPolygon'].includes(feature.geometry.type))
     .filter(isResidentZone);
+}
+
+export function timeRestrictionFeatures(payload) {
+  return recordsToFeatures(payload)
+    .filter(feature => feature?.geometry && ['Polygon', 'MultiPolygon'].includes(feature.geometry.type))
+    .filter(feature => featureType(feature).toLowerCase().includes('tidsrestriktion'));
 }
 
 function ringContains([lng, lat], ring) {
