@@ -3,56 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#f5f5f2" />
+  <meta name="description" content="Se din GPS-position og hvilken beboerlicenszone i København du befinder dig i." />
   <title>Min P-zone København</title>
   <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://tile.openstreetmap.org" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <main class="app-shell">
-    <section class="top-card" aria-live="polite">
+    <header class="top-card" aria-live="polite">
       <div class="eyebrow">KØBENHAVN · BEBOERLICENS</div>
       <h1 id="zoneTitle">Find din P-zone</h1>
-      <p id="zoneText">Tryk på knappen for at bruge din GPS-position.</p>
-      <div class="meta-row">
+      <p id="zoneText">Se alle beboerlicenszoner på kortet, eller brug din GPS for automatisk at finde den zone, du står i.</p>
+
+      <div class="meta-row" aria-label="Status">
         <span id="accuracyText">GPS ikke startet</span>
-        <span id="dataStatus">Indlæser zoner…</span>
+        <span id="dataStatus" data-state="loading">Henter zoner…</span>
       </div>
-      <button id="locateBtn" class="primary-btn" type="button">📍 Find min position</button>
+
+      <div class="action-row">
+        <button id="locateBtn" class="primary-btn" type="button">Find min position</button>
+        <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
+      </div>
+    </header>
+
+    <section class="map-card" aria-label="Kort over beboerlicenszoner">
+      <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
+      <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">◎</button>
+      <div class="map-legend" aria-hidden="true">
+        <span><i class="legend-line"></i> Zone</span>
+        <span><i class="legend-dot"></i> Din position</span>
+      </div>
     </section>
 
-    <section class="map-wrap" aria-label="Kort over din placering og parkeringszoner">
-      <div id="map"></div>
-      <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kort på min position" title="Centrer på min position">◎</button>
-    </section>
+    <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
 
-    <section class="controls-card">
-      <label class="switch-row">
+    <section class="controls-card" aria-label="Kortindstillinger">
+      <label class="control-row" for="zoneSelect">
         <span>
-          <strong>Vis zonegrænser</strong>
-          <small>Beboerlicenszoner fra Københavns Kommunes åbne data</small>
+          <strong>Fremhæv zone</strong>
+          <small>Virker uden GPS. Vælg fx VB, IN eller YN.</small>
         </span>
-        <input id="zonesToggle" type="checkbox" checked />
-      </label>
-      <div class="divider"></div>
-      <label class="select-row" for="zoneSelect">
-        <span>
-          <strong>Fremhæv en zone</strong>
-          <small>Valgfrit – GPS finder stadig din zone automatisk</small>
-        </span>
-        <select id="zoneSelect">
-          <option value="">Alle zoner</option>
+        <select id="zoneSelect" disabled>
+          <option value="">Indlæser zoner…</option>
         </select>
       </label>
+
+      <div class="divider"></div>
+
+      <label class="control-row switch-row" for="zonesToggle">
+        <span>
+          <strong>Vis zonegrænser</strong>
+          <small>Vis eller skjul kommunens beboerlicenszoner.</small>
+        </span>
+        <input id="zonesToggle" type="checkbox" checked disabled />
+      </label>
     </section>
 
-    <p class="disclaimer">
-      Vejledende zonevisning. Lokal skiltning og særlige vejregler kan afvige; tjek altid skiltningen dér, hvor du parkerer.
-    </p>
+    <footer class="footer-copy">
+      <p><strong>Datakilde:</strong> Københavns Kommunes åbne GIS-data for parkeringszoner.</p>
+      <p>Appen er vejledende. Kortet viser beboerlicenszoner, men ikke nødvendigvis alle lokale undtagelser. Tjek altid skiltning og afmærkning dér, hvor du parkerer.</p>
+    </footer>
   </main>
 
+  <noscript>Denne app kræver JavaScript for at vise kort, zoner og GPS.</noscript>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="./app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

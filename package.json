@@ -1,9 +1,11 @@
 {
   "name": "kbh-pzone-app",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "test": "node test-zone-core.mjs && node test-api.mjs",
+    "check": "node --check app.js && node --check zone-core.js && node --check api/zones.js"
   }
 }
