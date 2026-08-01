@@ -244,62 +244,144 @@ function setUserPosition(position, recenter = true) {
   updateZoneMessage(latitude, longitude);
 }
 
-function humanGpsError(error) {
-  if (!window.isSecureContext) {
-    return 'GPS kræver en sikker HTTPS-forbindelse. Åbn Vercel-linket direkte i Safari eller Chrome.';
-  }
-  const messages = {
-    1: 'Placering er ikke tilladt. Giv browseren adgang til din placering i telefonens indstillinger og prøv igen.',
-    2: 'Telefonen kunne ikke bestemme positionen. Tjek at Lokalitet/GPS er slået til, og prøv igen.',
-    3: 'Positionssøgningen tog for lang tid. Gå gerne udendørs eller tættere på et vindue og prøv igen.'
-  };
-  return messages[error?.code] || 'Der opstod en ukendt fejl ved hentning af positionen.';
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
-function geolocationError(error) {
+async function getGeolocationPermissionState() {
+  if (!navigator.permissions?.query) return 'unknown';
+  try {
+    const permission = await navigator.permissions.query({ name: 'geolocation' });
+    return permission?.state || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function getPosition(options) {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+async function getPositionRobustly() {
+  try {
+    return await getPosition({
+      enableHighAccuracy: false,
+      timeout: 15000,
+      maximumAge: 30000
+    });
+  } catch (firstError) {
+    if (firstError?.code === 1) throw firstError;
+    return await getPosition({
+      enableHighAccuracy: true,
+      timeout: 25000,
+      maximumAge: 0
+    });
+  }
+}
+
+async function gpsErrorDetails(error) {
+  const permission = await getGeolocationPermissionState();
+  const ios = isIOS();
+
+  if (!window.isSecureContext) {
+    return {
+      title: 'GPS kræver HTTPS',
+      text: 'Åbn appens Vercel-link direkte via https:// i Safari eller Chrome.',
+      status: 'GPS er blokeret, fordi forbindelsen ikke er sikker.'
+    };
+  }
+
+  if (error?.code === 1) {
+    if (ios) {
+      return {
+        title: 'iPhone blokerer GPS-adgangen',
+        text: 'Safari-webstedet kan godt stå til “Tillad”, mens iOS stadig blokerer selve GPS-tjenesten. Gå til Indstillinger → Anonymitet & sikkerhed → Lokalitetstjenester. Sørg for at Lokalitetstjenester er slået til. Find derefter Safari-websteder, vælg “Ved brug af appen”, og slå “Præcis lokalitet” til. Åbn derefter appen igen.',
+        status: permission === 'granted'
+          ? 'Safari melder tilladelse, men iOS afviser stadig positionen. Tjek Lokalitetstjenester → Safari-websteder.'
+          : 'iOS afviser positionen. Tjek både Lokalitetstjenester og Safari-websteder.'
+      };
+    }
+    return {
+      title: 'GPS-adgang er blokeret',
+      text: 'Browseren eller enhedens lokalitetsindstillinger afviser GPS. Tillad placering både for browseren og for dette websted, og prøv igen.',
+      status: 'GPS-adgang blev afvist af browseren eller enheden.'
+    };
+  }
+
+  if (error?.code === 2) {
+    return {
+      title: 'Position kunne ikke bestemmes',
+      text: 'Telefonen kunne ikke finde en stabil position. Kontroller at Lokalitetstjenester er slået til, og prøv igen — gerne tættere på et vindue eller udendørs.',
+      status: 'GPS-signalet kunne ikke give en position. Zonekortet virker stadig.'
+    };
+  }
+
+  if (error?.code === 3) {
+    return {
+      title: 'GPS tog for lang tid',
+      text: 'Telefonen nåede ikke at finde din position. Prøv igen — gerne tættere på et vindue eller udendørs.',
+      status: 'GPS-forsøget fik timeout. Zonekortet virker stadig.'
+    };
+  }
+
+  return {
+    title: 'GPS kunne ikke hentes',
+    text: `Der opstod en ukendt GPS-fejl${error?.message ? `: ${error.message}` : '.'}`,
+    status: 'GPS fejlede, men zonekortet virker stadig uden GPS.'
+  };
+}
+
+async function geolocationError(error) {
+  const details = await gpsErrorDetails(error);
   locateBtn.disabled = false;
   locateBtn.textContent = 'Prøv GPS igen';
-  accuracyText.textContent = 'GPS ikke tilgængelig';
+  accuracyText.textContent = error?.code === 1 ? 'GPS adgang afvist' : 'GPS ikke tilgængelig';
   accuracyText.dataset.state = 'error';
-  setLocationCopy('GPS kunne ikke hentes', humanGpsError(error));
-  setMapStatus('Du kan stadig se og vælge alle zoner på kortet uden GPS.', 'warning');
+  setLocationCopy(details.title, details.text);
+  setMapStatus(details.status, 'warning');
+  console.warn('GPS diagnostic', {
+    code: error?.code,
+    message: error?.message,
+    secureContext: window.isSecureContext,
+    ios: isIOS(),
+    userAgent: navigator.userAgent
+  });
 }
 
 async function permissionHint() {
-  if (!navigator.permissions?.query) return;
-  try {
-    const permission = await navigator.permissions.query({ name: 'geolocation' });
-    if (permission.state === 'denied') {
-      setMapStatus('Placering er blokeret i browseren. Zonekortet virker stadig uden GPS.', 'warning');
-    }
-  } catch {
-    // Safari supports geolocation even when Permissions API is unavailable/incomplete.
+  const state = await getGeolocationPermissionState();
+  if (state === 'denied') {
+    setMapStatus('Placering er blokeret i browseren. Zonekortet virker stadig uden GPS.', 'warning');
   }
 }
 
-function locate() {
+async function locate() {
   if (!navigator.geolocation) {
     setLocationCopy('GPS understøttes ikke', 'Din browser tilbyder ikke GPS-adgang. Zonekortet og zonevælgeren kan stadig bruges.');
     setMapStatus('Prøv Safari eller Chrome på en nyere telefon for GPS.', 'warning');
     return;
   }
   if (!window.isSecureContext) {
-    geolocationError({ code: 0 });
+    await geolocationError({ code: 0 });
     return;
   }
 
   locateBtn.disabled = true;
   locateBtn.textContent = 'Finder din position…';
   accuracyText.textContent = 'GPS søger…';
-  navigator.geolocation.getCurrentPosition(
-    position => {
-      setUserPosition(position, true);
-      locateBtn.disabled = false;
-      locateBtn.textContent = 'Opdater min position';
-    },
-    geolocationError,
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 }
-  );
+  accuracyText.dataset.state = 'loading';
+
+  try {
+    const position = await getPositionRobustly();
+    setUserPosition(position, true);
+    locateBtn.disabled = false;
+    locateBtn.textContent = 'Opdater min position';
+  } catch (error) {
+    await geolocationError(error);
+  }
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs = 12000) {
