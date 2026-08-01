@@ -24,20 +24,23 @@
       <span id="dataStatus" class="data-status" data-state="loading">Henter zoner…</span>
     </header>
 
-    <section class="hero-card" aria-live="polite">
-      <div class="hero-label">DIN POSITION</div>
-      <h1 id="zoneTitle">Find din zone</h1>
-      <p id="zoneText">Brug GPS for automatisk at finde din beboerlicenszone, eller vælg en zone manuelt på kortet.</p>
-
-      <div class="hero-footer">
-        <div id="accuracyText" class="gps-chip">GPS klar når du er</div>
-        <div class="hero-actions">
-          <button id="locateBtn" class="primary-btn" type="button">
-            <span aria-hidden="true">⌖</span>
-            Find min position
-          </button>
-          <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
+    <section class="position-card" aria-live="polite">
+      <div class="position-main">
+        <div class="position-copy">
+          <div class="position-label">DIN POSITION</div>
+          <h1 id="zoneTitle">Find din zone</h1>
+          <p id="zoneText">Brug GPS eller vælg en zone på kortet.</p>
         </div>
+
+        <button id="locateBtn" class="primary-btn compact-locate" type="button">
+          <span aria-hidden="true">⌖</span>
+          Find min position
+        </button>
+      </div>
+
+      <div class="position-meta">
+        <span id="accuracyText" class="gps-chip">GPS ikke startet</span>
+        <button id="retryDataBtn" class="secondary-btn compact-retry" type="button" hidden>Prøv zonedata igen</button>
       </div>
     </section>
 
@@ -45,7 +48,7 @@
       <div class="map-topbar">
         <div>
           <span class="section-eyebrow">KORT</span>
-          <strong>Licenszoner i København</strong>
+          <strong>P-zoner i København</strong>
         </div>
         <label class="zone-toggle" for="zonesToggle">
           <span>Vis zoner</span>
@@ -70,7 +73,7 @@
         <div class="zone-sheet-copy">
           <span class="section-eyebrow">VÆLG ZONE</span>
           <strong>Se en bestemt zone</strong>
-          <small>Vælg fx Christianshavn (CH) eller Vesterbro (VB).</small>
+          <small>Vælg en zone for at fremhæve den på kortet.</small>
         </div>
         <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
           <option value="">Indlæser zoner…</option>
