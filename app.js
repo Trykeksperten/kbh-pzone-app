@@ -421,6 +421,8 @@ function setUserPosition(position, recenter = true) {
   currentPosition = [latitude, longitude];
   accuracyText.textContent = `GPS ± ${Math.round(accuracy)} m`;
   accuracyText.dataset.state = accuracy <= 30 ? 'good' : accuracy <= 80 ? 'ok' : 'weak';
+  locateBtn.disabled = false;
+  locateBtn.textContent = 'Opdater GPS';
 
   if (!userMarker) {
     const icon = L.divIcon({
@@ -540,6 +542,19 @@ async function gpsErrorDetails(error) {
 async function geolocationError(error) {
   const details = await gpsErrorDetails(error);
   locateBtn.disabled = false;
+
+  // Hvis vi allerede har en gyldig GPS-position, må en efterfølgende timeout/
+  // midlertidig fejl ikke få appen til at påstå, at GPS ikke er tilgængelig.
+  if (currentPosition) {
+    locateBtn.textContent = 'Opdater GPS';
+    setMapStatus('Din senest fundne GPS-position vises stadig på kortet.', 'neutral');
+    console.warn('GPS update failed, keeping last valid position', {
+      code: error?.code,
+      message: error?.message
+    });
+    return;
+  }
+
   locateBtn.textContent = 'Prøv GPS igen';
   accuracyText.textContent = error?.code === 1 ? 'GPS adgang afvist' : 'GPS ikke tilgængelig';
   accuracyText.dataset.state = 'error';
