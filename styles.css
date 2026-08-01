@@ -470,3 +470,60 @@ select:disabled, input:disabled { opacity: .5; }
     font-size: 9px;
   }
 }
+
+
+/* === Orange accent system === */
+:root {
+  --pzone-orange: #ff7a00;
+  --pzone-orange-deep: #e96f00;
+  --pzone-orange-soft: rgba(255, 122, 0, .11);
+  --pzone-orange-ring: rgba(255, 122, 0, .24);
+}
+
+.brand-parking-icon {
+  color: var(--pzone-orange);
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  flex: 0 0 42px;
+  filter: drop-shadow(0 5px 10px rgba(255,122,0,.15));
+}
+.brand-parking-icon svg { width: 100%; height: 100%; display: block; }
+
+/* GPS position: orange, distinct from the magenta municipal zone geometry */
+.leaflet-marker-pane .gps-marker,
+.leaflet-marker-pane .position-marker,
+.user-position-marker,
+.gps-dot,
+.position-dot {
+  background: var(--pzone-orange) !important;
+  border-color: #fff !important;
+  box-shadow: 0 0 0 5px var(--pzone-orange-ring), 0 2px 8px rgba(17,24,39,.18) !important;
+}
+
+/* Orange GPS accent without turning the primary CTA into an orange button */
+#locateBtn svg,
+#gpsBtn svg,
+.locate-button svg,
+.gps-button svg,
+button[data-action="locate"] svg {
+  color: var(--pzone-orange);
+  stroke: var(--pzone-orange);
+}
+
+/* Selected/focused controls get a restrained orange identity */
+select:focus,
+button:focus-visible,
+a:focus-visible {
+  outline-color: var(--pzone-orange);
+}
+.zone-select:focus,
+#zoneSelect:focus {
+  border-color: var(--pzone-orange) !important;
+  box-shadow: 0 0 0 3px var(--pzone-orange-soft) !important;
+}
+
+/* Existing time-limited/free legend stays orange and now matches the brand */
+.legend-free {
+  border-color: var(--pzone-orange) !important;
+}
