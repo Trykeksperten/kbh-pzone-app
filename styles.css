@@ -530,3 +530,238 @@ a:focus-visible {
 .legend-free {
   border-color: var(--pzone-orange) !important;
 }
+
+
+/* =========================================================
+   COMPACT IPHONE UI
+   Pure layout/presentation layer. Map/GPS/zone logic unchanged.
+   ========================================================= */
+
+.compact-app {
+  width: min(100%, 850px);
+  padding-top: max(4px, env(safe-area-inset-top));
+}
+
+.compact-header {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 4px;
+}
+
+.compact-header .brand-app-icon {
+  width: 40px;
+  height: 40px;
+  display: block;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 5px 14px rgba(255,122,0,.16);
+}
+
+.compact-zone-row {
+  min-height: 42px;
+  margin-bottom: 6px;
+  padding: 8px 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 5px 16px rgba(16,24,40,.05);
+  white-space: nowrap;
+}
+
+.compact-label,
+.compact-gps,
+.compact-separator {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.compact-label {
+  flex: 0 0 auto;
+  font-weight: 650;
+}
+
+.compact-zone-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.compact-gps {
+  flex: 0 0 auto;
+  font-weight: 650;
+}
+
+.compact-update-btn {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e96f00;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.compact-update-btn:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.compact-map-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(16,24,40,.07);
+}
+
+.compact-select-row {
+  min-height: 42px;
+  padding: 5px 8px 5px 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.compact-select-row label {
+  flex: 0 0 auto;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.compact-select-row select {
+  min-width: 0;
+  width: auto;
+  flex: 1 1 auto;
+  min-height: 32px;
+  padding: 4px 29px 4px 7px;
+  border: 0;
+  border-radius: 8px;
+  background-color: #f8f9fb;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compact-map-card .map-stage {
+  border-radius: 0;
+}
+
+.compact-app .status-banner {
+  margin-top: 6px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  font-size: 10px;
+}
+
+.compact-app .app-footer {
+  padding-top: 3px;
+  font-size: 9px;
+}
+
+@media (max-width: 560px) {
+  .compact-app {
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .compact-header {
+    height: 43px;
+    padding-left: 3px;
+  }
+
+  .compact-header .brand-app-icon {
+    width: 37px;
+    height: 37px;
+    border-radius: 11px;
+  }
+
+  .compact-zone-row {
+    min-height: 38px;
+    margin-bottom: 5px;
+    padding: 7px 9px;
+    gap: 4px;
+    border-radius: 12px;
+  }
+
+  .compact-label,
+  .compact-zone-value,
+  .compact-gps,
+  .compact-update-btn,
+  .compact-separator {
+    font-size: 11px;
+  }
+
+  .compact-select-row {
+    min-height: 38px;
+    padding: 4px 7px 4px 9px;
+  }
+
+  .compact-select-row label,
+  .compact-select-row select {
+    font-size: 11px;
+  }
+
+  .compact-select-row select {
+    min-height: 30px;
+  }
+
+  .compact-map-card {
+    border-radius: 13px;
+  }
+
+  /* Push the actual map as high as possible and maximize useful viewport. */
+  .compact-map-card #map {
+    height: calc(100dvh - 132px);
+    min-height: 500px;
+    max-height: 760px;
+  }
+
+  .compact-app .map-legend {
+    left: 8px;
+    bottom: 8px;
+    padding: 6px 8px;
+    gap: 8px;
+    font-size: 8.5px;
+  }
+
+  .compact-app .recenter-btn {
+    right: 9px;
+    bottom: 9px;
+    width: 43px;
+    height: 43px;
+    border-radius: 13px;
+  }
+}
+
+@media (max-width: 390px) {
+  .compact-zone-row {
+    gap: 3px;
+  }
+
+  .compact-label,
+  .compact-zone-value,
+  .compact-gps,
+  .compact-update-btn,
+  .compact-separator {
+    font-size: 10.5px;
+  }
+
+  .compact-map-card #map {
+    height: calc(100dvh - 126px);
+  }
+}
