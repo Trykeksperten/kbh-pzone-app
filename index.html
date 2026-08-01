@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f3f4f6" />
-  <meta name="description" content="Se din GPS-position og hvilken beboerlicenszone i København du befinder dig i." />
-  <title>Min P-zone København</title>
+  <meta name="theme-color" content="#f6f7f9" />
+  <meta name="description" content="Find din beboerlicenszone i København med GPS." />
+  <title>P-zone København</title>
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://tile.openstreetmap.org" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -13,75 +13,76 @@
 </head>
 <body>
   <main class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">P</div>
+    <header class="app-bar">
+      <div class="brand-wrap">
+        <div class="brand-icon" aria-hidden="true">P</div>
         <div>
-          <div class="eyebrow">KØBENHAVN · BEBOERLICENS</div>
-          <div class="brand-name">P-zone København</div>
+          <div class="brand-title">P-zone København</div>
+          <div class="brand-subtitle">Beboerlicenszoner</div>
         </div>
       </div>
-      <div id="dataStatus" class="data-pill" data-state="loading">Henter zoner…</div>
+      <span id="dataStatus" class="data-status" data-state="loading">Henter zoner…</span>
     </header>
 
-    <section class="status-card" aria-live="polite">
-      <div class="status-copy">
-        <div class="status-kicker">DIN PARKERINGSZONE</div>
-        <h1 id="zoneTitle">Find din P-zone</h1>
-        <p id="zoneText">Se alle beboerlicenszoner på kortet, eller brug din GPS for automatisk at finde den zone, du står i.</p>
-      </div>
+    <section class="hero-card" aria-live="polite">
+      <div class="hero-label">DIN POSITION</div>
+      <h1 id="zoneTitle">Find din zone</h1>
+      <p id="zoneText">Brug GPS for automatisk at finde din beboerlicenszone, eller vælg en zone manuelt på kortet.</p>
 
-      <div class="status-actions">
-        <button id="locateBtn" class="primary-btn" type="button">
-          <span class="location-icon" aria-hidden="true">◎</span>
-          Find min position
-        </button>
-        <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
-      </div>
-
-      <div class="status-meta">
-        <span id="accuracyText">GPS ikke startet</span>
+      <div class="hero-footer">
+        <div id="accuracyText" class="gps-chip">GPS klar når du er</div>
+        <div class="hero-actions">
+          <button id="locateBtn" class="primary-btn" type="button">
+            <span aria-hidden="true">⌖</span>
+            Find min position
+          </button>
+          <button id="retryDataBtn" class="secondary-btn" type="button" hidden>Prøv zonedata igen</button>
+        </div>
       </div>
     </section>
 
     <section class="map-card" aria-label="Kort over beboerlicenszoner">
-      <div class="map-heading">
+      <div class="map-topbar">
         <div>
-          <span class="section-label">KORT</span>
-          <strong>Beboerlicenszoner</strong>
+          <span class="section-eyebrow">KORT</span>
+          <strong>Licenszoner i København</strong>
         </div>
-        <label class="mini-switch" for="zonesToggle">
-          <span>Zonegrænser</span>
+        <label class="zone-toggle" for="zonesToggle">
+          <span>Vis zoner</span>
           <input id="zonesToggle" type="checkbox" checked disabled />
         </label>
       </div>
 
-      <div class="map-frame">
+      <div class="map-stage">
         <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
-        <button id="recenterBtn" class="map-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">◎</button>
+
+        <button id="recenterBtn" class="recenter-btn" type="button" aria-label="Centrer kortet på min GPS-position" title="Centrer på min position">
+          <span aria-hidden="true">⌖</span>
+        </button>
+
         <div class="map-legend" aria-hidden="true">
-          <span><i class="legend-line"></i> Zone</span>
-          <span><i class="legend-dot"></i> Din position</span>
+          <span><i class="legend-zone"></i> Zone</span>
+          <span><i class="legend-position"></i> Din position</span>
         </div>
+      </div>
+
+      <div class="zone-sheet">
+        <div class="zone-sheet-copy">
+          <span class="section-eyebrow">VÆLG ZONE</span>
+          <strong>Se en bestemt zone</strong>
+          <small>Vælg fx Christianshavn (CH) eller Vesterbro (VB).</small>
+        </div>
+        <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
+          <option value="">Indlæser zoner…</option>
+        </select>
       </div>
     </section>
 
     <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
 
-    <section class="controls-card" aria-label="Kortindstillinger">
-      <div class="control-copy">
-        <span class="section-label">ZONEVÆLGER</span>
-        <strong>Fremhæv en zone</strong>
-        <small>Vælg en zone for at zoome til den. GPS er ikke nødvendig.</small>
-      </div>
-      <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
-        <option value="">Indlæser zoner…</option>
-      </select>
-    </section>
-
-    <footer class="footer-copy">
-      <p><strong>Datakilde:</strong> Københavns Kommunes åbne GIS-data for parkeringszoner.</p>
-      <p>Appen er vejledende. Kortet viser beboerlicenszoner, men ikke nødvendigvis alle lokale undtagelser. Tjek altid skiltning og afmærkning dér, hvor du parkerer.</p>
+    <footer class="app-footer">
+      <p><strong>Data:</strong> Københavns Kommunes åbne GIS-data.</p>
+      <p>Kortet er vejledende. Tjek altid lokal skiltning og afmærkning, hvor du parkerer.</p>
     </footer>
   </main>
 
