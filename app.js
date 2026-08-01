@@ -140,9 +140,9 @@ function populateZoneSelect(features) {
     let suffix;
     if (rule.timed) {
       const hours = TIME_LIMIT_RULES[zone.code]?.hours;
-      suffix = hours ? `🟠 ${name} · Gratis · ${hours} t` : `🟠 ${name} · Gratis · tidsbegrænset`;
+      suffix = hours ? `🟠 ${name} · Gratis ${hours} t` : `🟠 ${name} · Gratis`;
     } else {
-      suffix = `🟣 ${name} · Betaling/licens`;
+      suffix = `🟣 ${name} · Betaling`;
     }
 
     zoneSelect.add(new Option(suffix, zone.code));
