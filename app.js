@@ -87,6 +87,11 @@ const zonesToggle = el('zonesToggle');
 const zoneSelect = el('zoneSelect');
 const retryDataBtn = el('retryDataBtn');
 const mapStatus = el('mapStatus');
+const findFreeBtn = el('findFreeBtn');
+const freeParkingPanel = el('freeParkingPanel');
+const freeParkingSummary = el('freeParkingSummary');
+const freeParkingResults = el('freeParkingResults');
+const closeFreePanel = el('closeFreePanel');
 
 let zoneFeatures = [];
 let timeRestrictionFeaturesOnMap = [];
@@ -106,6 +111,7 @@ function setDataState(state, message) {
   retryDataBtn.hidden = state !== 'error';
   zoneSelect.disabled = state !== 'ready';
   zonesToggle.disabled = state !== 'ready';
+  findFreeBtn.disabled = state !== 'ready';
 }
 
 function setLocationCopy(title, text) {
@@ -264,6 +270,157 @@ function redrawZones() {
   }).addTo(map);
 
   addZoneLabels();
+}
+
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = value => value * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function eachGeometryPoint(geometry, callback) {
+  if (!geometry?.coordinates) return;
+  const visit = coords => {
+    if (!Array.isArray(coords)) return;
+    if (coords.length >= 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      callback(coords[1], coords[0]);
+      return;
+    }
+    for (const item of coords) visit(item);
+  };
+  visit(geometry.coordinates);
+}
+
+function approximateDistanceToFeature(feature, lat, lng) {
+  if (!feature?.geometry) return Infinity;
+  if (findZone([feature], lat, lng)) return 0;
+
+  let minimum = Infinity;
+  eachGeometryPoint(feature.geometry, (pointLat, pointLng) => {
+    const distance = haversineMeters(lat, lng, pointLat, pointLng);
+    if (distance < minimum) minimum = distance;
+  });
+  return minimum;
+}
+
+function nearestFreeParkingZones(lat, lng, limit = 4) {
+  const byCode = new Map();
+
+  for (const feature of zoneFeatures) {
+    const code = featureCode(feature);
+    if (!code || !isTimedLicenseZone(code)) continue;
+
+    const distance = approximateDistanceToFeature(feature, lat, lng);
+    const existing = byCode.get(code);
+    if (!existing || distance < existing.distance) {
+      byCode.set(code, {
+        code,
+        name: featureName(feature) || code,
+        distance,
+        rule: zoneParkingRule(code)
+      });
+    }
+  }
+
+  return [...byCode.values()]
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit);
+}
+
+function formatDistance(meters) {
+  if (!Number.isFinite(meters)) return '';
+  if (meters < 50) return 'Her';
+  if (meters < 1000) return `ca. ${Math.round(meters / 10) * 10} m`;
+  return `ca. ${(meters / 1000).toFixed(meters < 10000 ? 1 : 0).replace('.', ',')} km`;
+}
+
+function showFreeParkingResults(lat, lng) {
+  const results = nearestFreeParkingZones(lat, lng, 4);
+  freeParkingResults.replaceChildren();
+
+  if (!results.length) {
+    freeParkingSummary.textContent = 'Ingen tidsbegrænsede gratis zoner blev fundet.';
+    freeParkingPanel.hidden = false;
+    return;
+  }
+
+  freeParkingSummary.textContent = results[0].distance === 0
+    ? 'Du er allerede i en tidsbegrænset gratis zone.'
+    : 'Nærmeste tidsbegrænsede gratis zoner fra din position.';
+
+  for (const item of results) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'free-result';
+
+    const main = document.createElement('span');
+    main.className = 'free-result-main';
+
+    const title = document.createElement('span');
+    title.className = 'free-result-title';
+    title.textContent = `${item.name} (${item.code})`;
+
+    const rule = document.createElement('span');
+    rule.className = 'free-result-rule';
+    rule.textContent = item.rule.detail;
+
+    const distance = document.createElement('span');
+    distance.className = 'free-result-distance';
+    distance.textContent = formatDistance(item.distance);
+
+    const note = document.createElement('span');
+    note.className = 'free-result-note';
+    note.textContent = 'Tryk for at vise zonen på kortet. Tjek altid lokal skiltning.';
+
+    main.append(title, rule);
+    button.append(main, distance, note);
+
+    button.addEventListener('click', () => {
+      zoneSelect.value = item.code;
+      handleZoneSelection(true);
+    });
+
+    freeParkingResults.append(button);
+  }
+
+  freeParkingPanel.hidden = false;
+}
+
+async function findFreeParkingNearby() {
+  findFreeBtn.disabled = true;
+  findFreeBtn.textContent = 'Finder…';
+
+  try {
+    let lat;
+    let lng;
+
+    if (currentPosition) {
+      [lat, lng] = currentPosition;
+    } else {
+      if (!navigator.geolocation) throw new Error('GPS understøttes ikke');
+      const position = await getPositionRobustly();
+      setUserPosition(position, false);
+      lat = position.coords.latitude;
+      lng = position.coords.longitude;
+    }
+
+    showFreeParkingResults(lat, lng);
+  } catch (error) {
+    freeParkingResults.replaceChildren();
+    freeParkingSummary.textContent = 'Kunne ikke hente din position. Brug “Find min position” og prøv igen.';
+    freeParkingPanel.hidden = false;
+    console.warn('Find gratis parkering fejlede', error);
+  } finally {
+    findFreeBtn.disabled = dataLoadState !== 'ready';
+    findFreeBtn.textContent = 'Find i nærheden';
+  }
 }
 
 function boundsForCode(code) {
@@ -548,6 +705,10 @@ async function loadZones({ fit = true } = {}) {
 }
 
 locateBtn.addEventListener('click', locate);
+findFreeBtn.addEventListener('click', findFreeParkingNearby);
+closeFreePanel.addEventListener('click', () => {
+  freeParkingPanel.hidden = true;
+});
 recenterBtn.addEventListener('click', () => {
   if (currentPosition) map.setView(currentPosition, 16, { animate: true });
   else locate();
