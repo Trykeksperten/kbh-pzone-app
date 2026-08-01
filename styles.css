@@ -824,3 +824,52 @@ a:focus-visible {
     max-width: 34vw;
   }
 }
+
+
+/* v3: logo moved from header to non-interactive map watermark */
+.compact-header {
+  display: none !important;
+}
+
+.map-brand-watermark {
+  position: absolute;
+  z-index: 500;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  opacity: .72;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  box-shadow: 0 3px 10px rgba(16,24,40,.10);
+}
+
+/* Reclaim the header height for the map. */
+@media (max-width: 560px) {
+  .compact-app {
+    padding-top: max(3px, env(safe-area-inset-top));
+  }
+
+  .compact-map-card #map {
+    height: calc(100dvh - 88px);
+    min-height: 540px;
+    max-height: 820px;
+  }
+
+  .map-brand-watermark {
+    top: 8px;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    opacity: .70;
+  }
+}
+
+@media (max-width: 390px) {
+  .compact-map-card #map {
+    height: calc(100dvh - 84px);
+  }
+}
