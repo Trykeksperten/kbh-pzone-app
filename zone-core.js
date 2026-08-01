@@ -26,7 +26,6 @@ export function featureType(feature) {
   ]);
   if (explicit) return String(explicit).trim();
 
-  // Fallback for schema changes: look for a property value naming the known zone type.
   const value = Object.values(props).find(v => /beboerzone|adressebeboerzone|betalingszone|flexzone|prikgade|tidsrestriktion/i.test(String(v ?? '')));
   return value ? String(value).trim() : '';
 }
@@ -41,19 +40,34 @@ export function featureCode(feature) {
     if (/^[A-ZÆØÅ]{1,4}$/.test(value)) return value;
   }
 
-  // Fallback: resident-zone codes are short uppercase letter codes (VB, IN, YØ, ...).
   const candidates = Object.values(props)
     .map(v => String(v ?? '').trim().toUpperCase())
     .filter(v => /^[A-ZÆØÅ]{2,3}$/.test(v));
   return candidates[0] || '';
 }
 
+const RESIDENT_ZONE_NAMES = Object.freeze({
+  AN: 'Amager Nord',
+  CH: 'Christianshavn',
+  IB: 'Indre By',
+  IN: 'Indre Nørrebro',
+  'IØ': 'Indre Østerbro',
+  VA: 'Valby',
+  VB: 'Vesterbro',
+  YN: 'Ydre Nørrebro',
+  'YØ': 'Ydre Østerbro'
+});
+
 export function featureName(feature) {
+  const code = featureCode(feature);
+  if (RESIDENT_ZONE_NAMES[code]) return RESIDENT_ZONE_NAMES[code];
+
   const props = feature?.properties || {};
   const explicit = firstProp(props, [
     'zonenavn', 'zone_navn', 'p_zonenavn', 'pzonenavn', 'navn', 'name', 'zonename', 'beskrivelse'
   ]);
-  return explicit ? String(explicit).trim() : '';
+  const name = explicit ? String(explicit).trim() : '';
+  return name && name.toUpperCase() !== code ? name : '';
 }
 
 export function isResidentZone(feature) {
@@ -61,7 +75,6 @@ export function isResidentZone(feature) {
   if (type) {
     return type.includes('beboerzone') && !type.includes('adressebeboerzone') && !type.includes('adresse');
   }
-  // Last-resort compatibility if type is absent but a short zone code exists.
   return /^[A-ZÆØÅ]{2,3}$/.test(featureCode(feature));
 }
 
