@@ -45,16 +45,17 @@
     </section>
 
     <section class="map-card" aria-label="Kort over beboerlicenszoner">
-      <div class="map-topbar">
-        <div>
-          <span class="section-eyebrow">KORT</span>
-          <strong>P-zoner i København</strong>
+      <div class="zone-sheet zone-sheet-top">
+        <div class="zone-sheet-copy">
+          <span class="section-eyebrow">VÆLG ZONE</span>
+          <strong>Se en bestemt zone</strong>
+          <small>Vælg en zone for at fremhæve den på kortet.</small>
         </div>
-        <label class="zone-toggle" for="zonesToggle">
-          <span>Vis zoner</span>
-          <input id="zonesToggle" type="checkbox" checked disabled />
-        </label>
+        <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
+          <option value="">Indlæser zoner…</option>
+        </select>
       </div>
+      <input id="zonesToggle" class="sr-only" type="checkbox" checked disabled aria-hidden="true" />
 
       <div class="map-stage">
         <div id="map" role="application" aria-label="Interaktivt kort over Københavns beboerlicenszoner"></div>
@@ -69,16 +70,6 @@
         </div>
       </div>
 
-      <div class="zone-sheet">
-        <div class="zone-sheet-copy">
-          <span class="section-eyebrow">VÆLG ZONE</span>
-          <strong>Se en bestemt zone</strong>
-          <small>Vælg en zone for at fremhæve den på kortet.</small>
-        </div>
-        <select id="zoneSelect" disabled aria-label="Vælg beboerlicenszone">
-          <option value="">Indlæser zoner…</option>
-        </select>
-      </div>
     </section>
 
     <div id="mapStatus" class="status-banner" data-tone="neutral" role="status">Henter de officielle beboerlicenszoner…</div>
