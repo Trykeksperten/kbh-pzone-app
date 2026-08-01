@@ -976,3 +976,56 @@ a:focus-visible {
     font-size: 8.5px;
   }
 }
+
+
+/* Slightly larger typography — compact layout preserved */
+.compact-label,
+.compact-zone-value,
+.compact-gps,
+.compact-update-btn,
+.compact-separator {
+  font-size: 11.5px;
+}
+
+.compact-select-row label,
+.zone-picker-btn {
+  font-size: 11.5px;
+}
+
+.zone-option-main strong {
+  font-size: 10.5px;
+}
+
+.zone-option-main span {
+  font-size: 11px;
+}
+
+.zone-option-rule {
+  font-size: 9.5px;
+}
+
+.compact-app .status-banner {
+  font-size: 10.5px;
+}
+
+.compact-app .map-legend {
+  font-size: 9px;
+}
+
+@media (max-width: 390px) {
+  .compact-label,
+  .compact-zone-value,
+  .compact-gps,
+  .compact-update-btn,
+  .compact-separator {
+    font-size: 11px;
+  }
+
+  .zone-option-main span {
+    font-size: 10.5px;
+  }
+
+  .zone-option-rule {
+    font-size: 9px;
+  }
+}
