@@ -446,7 +446,7 @@ async function gpsErrorDetails(error) {
 async function geolocationError(error) {
   const details = await gpsErrorDetails(error);
   locateBtn.disabled = false;
-  locateBtn.textContent = 'Prøv igen';
+  locateBtn.textContent = 'Prøv GPS igen';
   accuracyText.textContent = error?.code === 1 ? 'GPS adgang afvist' : 'GPS ikke tilgængelig';
   accuracyText.dataset.state = 'error';
   setLocationCopy(details.title, details.text);
@@ -479,7 +479,7 @@ async function locate() {
   }
 
   locateBtn.disabled = true;
-  locateBtn.textContent = 'Finder…';
+  locateBtn.textContent = 'Finder GPS…';
   accuracyText.textContent = 'GPS søger…';
   accuracyText.dataset.state = 'loading';
 
@@ -487,7 +487,7 @@ async function locate() {
     const position = await getPositionRobustly();
     setUserPosition(position, true);
     locateBtn.disabled = false;
-    locateBtn.textContent = 'Opdater';
+    locateBtn.textContent = 'Opdater GPS';
   } catch (error) {
     await geolocationError(error);
   }
