@@ -455,99 +455,18 @@ select:disabled, input:disabled { opacity: .5; }
   }
 }
 
-/* Find gratis parkering i nærheden */
-.nearby-parking-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--line, #e5e7eb);
-  background: #fffdf8;
+/* Tydelig kortforklaring for gratis/tidsbegrænsede områder */
+.legend-free {
+  width: 16px;
+  border-top: 3px solid #c87912;
 }
-.nearby-copy { display: grid; gap: 3px; min-width: 0; }
-.nearby-copy strong { font-size: 13px; letter-spacing: -.01em; }
-.nearby-copy small { color: #7d6a45; font-size: 10px; line-height: 1.3; }
-.nearby-btn {
-  flex: 0 0 auto;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid #e5c477;
-  border-radius: 11px;
-  background: #fff5d8;
-  color: #714600;
-  font-size: 10.5px;
-  font-weight: 800;
-  cursor: pointer;
+.map-legend {
+  flex-wrap: wrap;
+  max-width: calc(100% - 78px);
 }
-.nearby-btn:disabled { opacity: .5; cursor: wait; }
-
-.free-parking-panel {
-  margin: 9px 2px 0;
-  overflow: hidden;
-  border: 1px solid #ecd394;
-  border-radius: 15px;
-  background: #fffbf1;
-  box-shadow: 0 8px 22px rgba(16,24,40,.06);
-}
-.free-panel-head {
-  min-height: 52px;
-  padding: 10px 12px 9px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid #efe0ba;
-}
-.free-panel-head > div { display: grid; gap: 2px; }
-.free-panel-head strong { font-size: 13px; }
-.free-panel-head small { color: #866b34; font-size: 10px; }
-.icon-btn {
-  width: 31px; height: 31px;
-  border: 0; border-radius: 9px;
-  background: rgba(255,255,255,.8);
-  color: #6e501b;
-  font-size: 20px;
-  cursor: pointer;
-}
-.free-results { display: grid; }
-.free-result {
-  width: 100%;
-  padding: 11px 13px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 7px 10px;
-  text-align: left;
-  border: 0;
-  border-bottom: 1px solid #efe0ba;
-  background: transparent;
-  color: #2d2619;
-  cursor: pointer;
-}
-.free-result:last-child { border-bottom: 0; }
-.free-result:hover { background: rgba(255,255,255,.58); }
-.free-result-main { display: grid; gap: 2px; }
-.free-result-title { font-size: 12.5px; font-weight: 820; }
-.free-result-rule { color: #745c2e; font-size: 10px; line-height: 1.35; }
-.free-result-distance {
-  align-self: center;
-  padding: 5px 8px;
-  border: 1px solid #e9cf95;
-  border-radius: 999px;
-  background: rgba(255,255,255,.78);
-  color: #714d0c;
-  font-size: 9.5px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-.free-result-note {
-  grid-column: 1 / -1;
-  color: #8b7550;
-  font-size: 9.5px;
-  line-height: 1.3;
-}
-
 @media (max-width: 560px) {
-  .nearby-parking-bar { padding: 10px 13px; }
-  .nearby-copy small { display: none; }
+  .map-legend {
+    gap: 8px 10px;
+    font-size: 9px;
+  }
 }
