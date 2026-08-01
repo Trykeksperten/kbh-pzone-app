@@ -132,9 +132,22 @@ function uniqueZoneOptions(features) {
 function populateZoneSelect(features) {
   const previous = zoneSelect.value;
   zoneSelect.replaceChildren(new Option('Alle beboerzoner', ''));
+
   for (const zone of uniqueZoneOptions(features)) {
-    zoneSelect.add(new Option(zone.name ? `${zone.name} (${zone.code})` : zone.code, zone.code));
+    const rule = zoneParkingRule(zone.code);
+    const name = zone.name ? `${zone.name} (${zone.code})` : zone.code;
+
+    let suffix;
+    if (rule.timed) {
+      const hours = TIME_LIMIT_RULES[zone.code]?.hours;
+      suffix = hours ? `🟠 ${name} · Gratis · ${hours} t` : `🟠 ${name} · Gratis · tidsbegrænset`;
+    } else {
+      suffix = `🟣 ${name} · Betaling/licens`;
+    }
+
+    zoneSelect.add(new Option(suffix, zone.code));
   }
+
   if ([...zoneSelect.options].some(option => option.value === previous)) zoneSelect.value = previous;
 }
 
