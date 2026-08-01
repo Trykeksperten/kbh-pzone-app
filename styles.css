@@ -826,50 +826,153 @@ a:focus-visible {
 }
 
 
-/* v3: logo moved from header to non-interactive map watermark */
-.compact-header {
-  display: none !important;
+/* Compact custom zone picker: avoids oversized native iOS select sheet */
+.native-zone-select {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
-.map-brand-watermark {
+.zone-picker {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.zone-picker-btn {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px 4px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: #f8f9fb;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  text-align: left;
+}
+
+.zone-picker-chevron {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.zone-picker-menu {
   position: absolute;
-  z-index: 500;
-  top: 10px;
-  right: 10px;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  opacity: .72;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-  box-shadow: 0 3px 10px rgba(16,24,40,.10);
+  z-index: 1200;
+  top: calc(100% + 5px);
+  right: 0;
+  width: min(330px, calc(100vw - 24px));
+  max-height: min(56vh, 430px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px;
+  border: 1px solid rgba(16,24,40,.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 12px 32px rgba(16,24,40,.18);
 }
 
-/* Reclaim the header height for the map. */
-@media (max-width: 560px) {
-  .compact-app {
-    padding-top: max(3px, env(safe-area-inset-top));
-  }
+.zone-picker-menu[hidden] {
+  display: none;
+}
 
-  .compact-map-card #map {
-    height: calc(100dvh - 88px);
-    min-height: 540px;
-    max-height: 820px;
-  }
+.zone-picker-option {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 7px;
+  display: grid;
+  grid-template-columns: 7px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-bottom: 1px solid rgba(16,24,40,.055);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
 
-  .map-brand-watermark {
-    top: 8px;
-    right: 8px;
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    opacity: .70;
-  }
+.zone-picker-option:last-child {
+  border-bottom: 0;
+}
+
+.zone-picker-option:active {
+  background: #f5f6f8;
+}
+
+.zone-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a51f64;
+}
+
+.zone-dot.is-free {
+  background: #ff7a00;
+}
+
+.zone-dot.is-paid {
+  background: #a51f64;
+}
+
+.zone-dot.is-all-dot {
+  background: #98a2b3;
+}
+
+.zone-option-main {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.zone-option-main strong {
+  flex: 0 0 auto;
+  font-size: 10px;
+  letter-spacing: .02em;
+}
+
+.zone-option-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.zone-option-rule {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 @media (max-width: 390px) {
-  .compact-map-card #map {
-    height: calc(100dvh - 84px);
+  .zone-picker-menu {
+    width: min(310px, calc(100vw - 18px));
+    max-height: 52vh;
+  }
+
+  .zone-picker-option {
+    min-height: 32px;
+    padding: 4px 6px;
+  }
+
+  .zone-option-main span {
+    font-size: 10px;
+  }
+
+  .zone-option-rule {
+    font-size: 8.5px;
   }
 }
