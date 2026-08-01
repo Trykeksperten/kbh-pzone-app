@@ -339,8 +339,8 @@ function setUserPosition(position, recenter = true) {
     accuracyCircle = L.circle(currentPosition, {
       radius: accuracy,
       weight: 1,
-      color: '#1769e0',
-      fillColor: '#1769e0',
+      color: '#ff7a00',
+      fillColor: '#ff7a00',
       fillOpacity: 0.07
     }).addTo(map);
   } else {
