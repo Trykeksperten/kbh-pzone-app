@@ -109,6 +109,61 @@ let accuracyCircle = null;
 let activeGpsZoneCode = '';
 let pinnedZoneCode = '';
 let dataLoadState = 'loading';
+let dismissedParkingNoticeKey = '';
+
+
+function ensureParkingNoticePopup() {
+  let popup = document.getElementById('parkingNoticePopup');
+  if (popup) return popup;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .parking-notice-popup{position:absolute;z-index:950;left:50%;top:54px;width:min(330px,calc(100% - 24px));transform:translateX(-50%);padding:10px 38px 10px 12px;border:1px solid #b9dfc8;border-radius:13px;background:rgba(244,252,247,.98);color:#195f3a;box-shadow:0 10px 28px rgba(16,24,40,.16);backdrop-filter:blur(12px);font-size:11px;line-height:1.35;pointer-events:auto}
+    .parking-notice-popup[hidden]{display:none}
+    .parking-notice-popup strong{display:block;margin-bottom:2px;color:#14532d;font-size:11.5px}
+    .parking-notice-popup button{position:absolute;top:6px;right:7px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#357454;font-size:20px;line-height:1;cursor:pointer}
+    .parking-notice-popup button:active{background:rgba(20,83,45,.08)}
+    @media(max-width:390px){.parking-notice-popup{top:48px;width:calc(100% - 18px);padding:9px 36px 9px 10px;font-size:10.5px}}
+  `;
+  document.head.appendChild(style);
+
+  popup = document.createElement('div');
+  popup.id = 'parkingNoticePopup';
+  popup.className = 'parking-notice-popup';
+  popup.hidden = true;
+  popup.setAttribute('role','status');
+  popup.setAttribute('aria-live','polite');
+  popup.innerHTML = `<strong id="parkingNoticeTitle">Parkeringsinfo</strong><span id="parkingNoticeText"></span><button type="button" aria-label="Luk parkeringsinfo">×</button>`;
+
+  const mapStage = document.querySelector('.map-stage');
+  if (mapStage) mapStage.appendChild(popup);
+
+  popup.querySelector('button').addEventListener('click', event => {
+    event.stopPropagation();
+    dismissedParkingNoticeKey = popup.dataset.noticeKey || '';
+    popup.hidden = true;
+  });
+  return popup;
+}
+
+function showParkingNoticePopup(code, notice) {
+  const popup = ensureParkingNoticePopup();
+  if (!popup) return;
+  if (!notice) {
+    popup.hidden = true;
+    popup.dataset.noticeKey = '';
+    return;
+  }
+
+  const key = `${code}|${notice}`;
+  if (dismissedParkingNoticeKey === key) return;
+
+  document.getElementById('parkingNoticeTitle').textContent =
+    code === 'FR' ? 'Parkeringsinfo · Frederiksberg' : '1. time gratis';
+  document.getElementById('parkingNoticeText').textContent = notice;
+  popup.dataset.noticeKey = key;
+  popup.hidden = false;
+}
 
 function setDataState(state, message) {
   dataLoadState = state;
@@ -439,13 +494,16 @@ function refreshZonePresentation() {
 
 function updateSelectedZoneStatus(code) {
   if (!code) {
+    showParkingNoticePopup('', '');
     setMapStatus('Alle beboerlicenszoner vises på kortet.');
     return;
   }
 
   const option = zoneSelect.options[zoneSelect.selectedIndex];
   const rule = zoneParkingRule(code);
+  showParkingNoticePopup(code, currentParkingNotice(code));
   const parkingNotice = currentParkingNotice(code);
+    showParkingNoticePopup(code, parkingNotice);
   const base = `${option?.text || code}: ${rule.short}. ${rule.detail}`;
   setMapStatus(
     parkingNotice ? `${parkingNotice} ${base}` : base,
@@ -568,6 +626,7 @@ function updateZoneMessage(lat, lng, accuracy = currentAccuracy) {
       setMapStatus(parkingNotice ? `${parkingNotice} ${zoneText}` : zoneText, parkingNotice || rule.timed ? 'warning' : 'success');
     }
   } else {
+    showParkingNoticePopup('', '');
     setLocationCopy('Du er uden for en beboerzone', 'Din GPS-position ligger ikke i en registreret beboerlicenszone i kommunens datasæt.');
     setMapStatus('GPS-positionen ligger uden for de viste beboerlicenszoner.', 'neutral');
   }
