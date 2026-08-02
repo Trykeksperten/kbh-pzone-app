@@ -501,9 +501,7 @@ function updateSelectedZoneStatus(code) {
 
   const option = zoneSelect.options[zoneSelect.selectedIndex];
   const rule = zoneParkingRule(code);
-  showParkingNoticePopup(code, currentParkingNotice(code));
   const parkingNotice = currentParkingNotice(code);
-    showParkingNoticePopup(code, parkingNotice);
   const base = `${option?.text || code}: ${rule.short}. ${rule.detail}`;
   setMapStatus(
     parkingNotice ? `${parkingNotice} ${base}` : base,
@@ -883,6 +881,35 @@ async function loadZones({ fit = true } = {}) {
 }
 
 
+
+function updatePaymentMenuInfo() {
+  const menu = document.querySelector('.payment-apps-menu');
+  if (!menu) return;
+
+  let info = document.getElementById('paymentRuleInfo');
+  if (!info) {
+    info = document.createElement('div');
+    info.id = 'paymentRuleInfo';
+    info.style.cssText = 'margin:2px 3px 5px;padding:8px 8px;border-radius:9px;background:#f4f7f5;color:#344054;font-size:9.5px;line-height:1.35;border:1px solid #e1e8e4;';
+    menu.prepend(info);
+  }
+
+  const code = activeGpsZoneCode || zoneSelect.value || '';
+  if (!code) {
+    info.innerHTML = '<strong style="display:block;margin-bottom:2px">Parkeringsinfo</strong>Find din position eller vælg en zone for at se de aktuelle regler.';
+    return;
+  }
+
+  const name = uniqueZoneOptions(zoneFeatures).find(z => z.code === code)?.name || code;
+  const notice = currentParkingNotice(code);
+  const rule = zoneParkingRule(code);
+
+  let headline = `${name}${code === 'FR' ? '' : ` (${code})`}`;
+  let text = notice || `${rule.short}. ${rule.detail}`;
+
+  info.innerHTML = `<strong style="display:block;margin-bottom:2px;color:#1d2939">${headline}</strong>${text}`;
+}
+
 function openParkingApp(appUrl, fallbackUrl) {
   let leftPage = false;
   let fallbackTimer = null;
@@ -907,6 +934,14 @@ function openParkingApp(appUrl, fallbackUrl) {
       window.location.href = fallbackUrl;
     }
   }, 1200);
+}
+
+
+const paymentDetails = document.querySelector('.payment-apps');
+if (paymentDetails) {
+  paymentDetails.addEventListener('toggle', () => {
+    if (paymentDetails.open) updatePaymentMenuInfo();
+  });
 }
 
 document.querySelectorAll('.payment-app-link').forEach(button => {
