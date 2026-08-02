@@ -103,6 +103,7 @@ let zoneLayer = null;
 let timeRestrictionLayer = null;
 let labelLayer = null;
 let currentPosition = null;
+let currentAccuracy = null;
 let userMarker = null;
 let accuracyCircle = null;
 let activeGpsZoneCode = '';
@@ -531,7 +532,7 @@ function handleZoneSelection(zoom = true) {
   if (zoom && bounds) map.fitBounds(bounds, { padding: [26, 26], maxZoom: 15 });
 }
 
-function updateZoneMessage(lat, lng) {
+function updateZoneMessage(lat, lng, accuracy = currentAccuracy) {
   if (!zoneFeatures.length) {
     setLocationCopy('Din position er fundet', 'Zonedata indlæses stadig. Din zone vises automatisk, så snart data er klar.');
     return;
@@ -545,7 +546,8 @@ function updateZoneMessage(lat, lng) {
     const code = activeGpsZoneCode || 'ukendt';
     const name = featureName(zone);
     const rule = zoneParkingRule(code);
-    const edge = boundaryWarning(lat, lng, accuracy, code);
+    const safeAccuracy = Number.isFinite(accuracy) ? accuracy : 50;
+    const edge = boundaryWarning(lat, lng, safeAccuracy, code);
     const parkingNotice = currentParkingNotice(code);
     setLocationCopy(
       name ? `${name} (${code})` : `${code}`,
@@ -555,7 +557,7 @@ function updateZoneMessage(lat, lng) {
     if (edge) {
       const nc=edge.neighbor?featureCode(edge.neighbor):'', nn=edge.neighbor?featureName(edge.neighbor):'';
       const neighbor=nc?`${nn?`${nn} `:''}(${nc})`:'en anden zone';
-      const edgeText = `${edge.uncertain?'GPS-positionen ligger tæt på en zonegrænse':'Tæt på zonegrænse'}: ca. ${edge.distance} m til ${neighbor}. GPS ± ${Math.round(accuracy)} m. Tjek placering og skiltning.`;
+      const edgeText = `${edge.uncertain?'GPS-positionen ligger tæt på en zonegrænse':'Tæt på zonegrænse'}: ca. ${edge.distance} m til ${neighbor}. GPS ± ${Math.round(safeAccuracy)} m. Tjek placering og skiltning.`;
       setMapStatus(parkingNotice ? `${parkingNotice} ${edgeText}` : edgeText, 'warning');
     } else {
       const zoneText = name ? `${name} (${code}): ${rule.short}.` : `${code}: ${rule.short}.`;
@@ -570,6 +572,7 @@ function updateZoneMessage(lat, lng) {
 function setUserPosition(position, recenter = true) {
   const { latitude, longitude, accuracy } = position.coords;
   currentPosition = [latitude, longitude];
+  currentAccuracy = accuracy;
   accuracyText.textContent = `GPS ± ${Math.round(accuracy)} m`;
   accuracyText.dataset.state = accuracy <= 30 ? 'good' : accuracy <= 80 ? 'ok' : 'weak';
   locateBtn.disabled = false;
@@ -597,7 +600,7 @@ function setUserPosition(position, recenter = true) {
 
   recenterBtn.disabled = false;
   if (recenter) map.setView(currentPosition, Math.max(map.getZoom(), 16), { animate: true });
-  updateZoneMessage(latitude, longitude);
+  updateZoneMessage(latitude, longitude, accuracy);
 }
 
 function isIOS() {
@@ -800,7 +803,7 @@ async function loadZones({ fit = true } = {}) {
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
       setMapStatus('Zonekortet er klar. Orange zoner er gratis, men tidsbegrænsede. Tjek altid skiltningen.', 'success');
-      if (currentPosition) updateZoneMessage(...currentPosition);
+      if (currentPosition) updateZoneMessage(...currentPosition, currentAccuracy);
       return true;
     } catch (error) {
       lastError = error;
