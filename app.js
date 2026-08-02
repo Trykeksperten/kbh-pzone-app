@@ -10,6 +10,7 @@ import {
 const DATA_API = '/api/zones';
 const DIRECT_WFS = 'https://wfs-kbhkort.kk.dk/k101/ows?outputFormat=application%2Fjson&request=GetFeature&service=WFS&srsname=EPSG%3A4326&typeName=k101%3Ap_zoner_kbh&version=1.0.0';
 const COPENHAGEN_CENTER = [55.6761, 12.5683];
+const FREDERIKSBERG_GEOJSON = 'https://api.dataforsyningen.dk/kommuner/0147?format=geojson';
 
 const TIME_LIMIT_RULES = Object.freeze({
   GJ: { hours: 3, window: '08–19', days: 'hverdage' },
@@ -35,6 +36,14 @@ const TIME_LIMIT_RULES = Object.freeze({
 });
 
 function zoneParkingRule(code) {
+  if (code === 'FR') {
+    return {
+      timed: false,
+      short: 'Frederiksberg betalingszone',
+      detail: 'Områdekode 2000. Betaling hverdage kl. 07–24 og lørdage kl. 07–17. Søndage og kommunens betalingsfri helligdage er gratis. Tjek altid lokal skiltning.'
+    };
+  }
+
   const rule = TIME_LIMIT_RULES[code];
   if (!rule) {
     return {
@@ -144,8 +153,9 @@ const zonePickerLabel = document.getElementById('zonePickerLabel');
 const zonePickerMenu = document.getElementById('zonePickerMenu');
 
 function compactRuleLabel(code) {
+  if (code === 'FR') return isFrederiksbergFreeDay() ? 'Gratis i dag' : 'Betaling · 2000';
   const rule = zoneParkingRule(code);
-  if (!rule.timed) return 'Betaling';
+  if (!rule.timed) return isCopenhagenFirstHourFreeNow() ? '1. time gratis*' : 'Betaling';
   const hours = TIME_LIMIT_RULES[code]?.hours;
   return hours ? `Gratis ${hours} t` : 'Gratis';
 }
@@ -225,6 +235,91 @@ document.addEventListener('click', (event) => {
 });
 
 
+
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function dateKey(date) {
+  return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function isFrederiksbergFreeDay(now = new Date()) {
+  if (now.getDay() === 0) return true;
+  const y = now.getFullYear();
+  const easter = easterSunday(y);
+  const free = [
+    new Date(y,0,1), new Date(y,5,5), new Date(y,11,24), new Date(y,11,25), new Date(y,11,26),
+    addDays(easter,-3), addDays(easter,-2), easter, addDays(easter,1),
+    addDays(easter,39), addDays(easter,49), addDays(easter,50)
+  ];
+  return free.some(d => dateKey(d) === dateKey(now));
+}
+
+function isCopenhagenFirstHourFreeNow(now = new Date()) {
+  const day = now.getDay(), hour = now.getHours();
+  if ((day === 6 && hour >= 17) || day === 0 || (day === 1 && hour < 8)) return true;
+
+  const y = now.getFullYear();
+  const easter = easterSunday(y);
+  const specialDays = [
+    new Date(y,0,1), new Date(y,5,5), new Date(y,11,24), new Date(y,11,25), new Date(y,11,26),
+    addDays(easter,-3), addDays(easter,-2), easter, addDays(easter,1),
+    addDays(easter,39), addDays(easter,49), addDays(easter,50)
+  ];
+  return specialDays.some(d => dateKey(d) === dateKey(now));
+}
+
+function currentParkingNotice(code, now = new Date()) {
+  if (code === 'FR') {
+    if (isFrederiksbergFreeDay(now)) {
+      return 'Gratis parkering i dag på Frederiksberg · ingen digital registrering nødvendig. Lokale restriktioner kan stadig gælde.';
+    }
+    const day = now.getDay(), hour = now.getHours();
+    const paymentNow = (day >= 1 && day <= 5 && hour >= 7) || (day === 6 && hour >= 7 && hour < 17);
+    return paymentNow
+      ? 'Betaling gælder nu · områdekode 2000.'
+      : 'Gratis uden for betalingstiden. Lokale restriktioner kan stadig gælde.';
+  }
+
+  if (!isTimedLicenseZone(code) && isCopenhagenFirstHourFreeNow(now)) {
+    return 'Første time af dagens første registrerede parkering er gratis · registrering er stadig nødvendig.';
+  }
+
+  return '';
+}
+
+function normalizeFrederiksbergFeature(payload) {
+  const raw = payload?.type === 'FeatureCollection' ? payload.features?.[0]
+    : payload?.type === 'Feature' ? payload : null;
+  if (!raw?.geometry) return null;
+  return {
+    type: 'Feature',
+    geometry: raw.geometry,
+    properties: {
+      ...(raw.properties || {}),
+      zonekode: 'FR',
+      zonenavn: 'Frederiksberg',
+      zonetype: 'Frederiksberg Kommune'
+    }
+  };
+}
+
 function pointToSegmentMeters(lat,lng,a,b){const kx=111320*Math.cos(lat*Math.PI/180),ky=110540,ax=(a[0]-lng)*kx,ay=(a[1]-lat)*ky,bx=(b[0]-lng)*kx,by=(b[1]-lat)*ky,dx=bx-ax,dy=by-ay,d=dx*dx+dy*dy,t=d?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/d)):0;return Math.hypot(ax+t*dx,ay+t*dy);}
 function geometryBoundaryDistanceMeters(g,lat,lng){if(!g)return Infinity;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];let best=Infinity;for(const p of ps)for(const r of p)for(let i=1;i<r.length;i++)best=Math.min(best,pointToSegmentMeters(lat,lng,r[i-1],r[i]));return best;}
 function boundaryWarning(lat,lng,accuracy,currentCode){let edge=Infinity,neighbor=null,nd=Infinity;for(const f of zoneFeatures){const c=featureCode(f);if(!c)continue;const d=geometryBoundaryDistanceMeters(f.geometry,lat,lng);if(c===currentCode)edge=Math.min(edge,d);else if(d<nd){nd=d;neighbor=f;}}const threshold=Math.max(50,Math.min(150,accuracy*2));if(!Number.isFinite(edge)||edge>threshold)return null;return{distance:Math.round(edge),neighbor,uncertain:accuracy>=Math.max(25,edge)};}
@@ -236,9 +331,10 @@ function styleForFeature(feature) {
   const isSelected = selected && code === selected;
   const isGps = activeGpsZoneCode && code === activeGpsZoneCode;
 
-  const baseColor = timed ? '#c87912' : '#b52b72';
-  const activeColor = timed ? '#a85f08' : '#a31963';
-  const fillColor = timed ? '#f4a62a' : '#d43a86';
+  const isFrederiksberg = code === 'FR';
+  const baseColor = isFrederiksberg ? '#52647a' : (timed ? '#c87912' : '#b52b72');
+  const activeColor = isFrederiksberg ? '#34465d' : (timed ? '#a85f08' : '#a31963');
+  const fillColor = isFrederiksberg ? '#7890aa' : (timed ? '#f4a62a' : '#d43a86');
 
   if (isGps) return {color:'#18864b',weight:4.5,opacity:1,fillColor:'#35a765',fillOpacity:0.16};
   if (isSelected) return {color:activeColor,weight:4,opacity:1,fillColor,fillOpacity:0.22};
@@ -450,19 +546,21 @@ function updateZoneMessage(lat, lng) {
     const name = featureName(zone);
     const rule = zoneParkingRule(code);
     const edge = boundaryWarning(lat, lng, accuracy, code);
+    const parkingNotice = currentParkingNotice(code);
+    setLocationCopy(
+      name ? `${name} (${code})` : `${code}`,
+      `${rule.short}. ${rule.detail}${parkingNotice ? ` ${parkingNotice}` : ''}`
+    );
+
     if (edge) {
       const nc=edge.neighbor?featureCode(edge.neighbor):'', nn=edge.neighbor?featureName(edge.neighbor):'';
       const neighbor=nc?`${nn?`${nn} `:''}(${nc})`:'en anden zone';
-      setTimeout(()=>setMapStatus(`${edge.uncertain?'GPS-positionen ligger tæt på en zonegrænse':'Tæt på zonegrænse'}: ca. ${edge.distance} m til ${neighbor}. GPS ± ${Math.round(accuracy)} m. Tjek placering og skiltning.`,'warning'),0);
+      const edgeText = `${edge.uncertain?'GPS-positionen ligger tæt på en zonegrænse':'Tæt på zonegrænse'}: ca. ${edge.distance} m til ${neighbor}. GPS ± ${Math.round(accuracy)} m. Tjek placering og skiltning.`;
+      setMapStatus(parkingNotice ? `${parkingNotice} ${edgeText}` : edgeText, 'warning');
+    } else {
+      const zoneText = name ? `${name} (${code}): ${rule.short}.` : `${code}: ${rule.short}.`;
+      setMapStatus(parkingNotice ? `${parkingNotice} ${zoneText}` : zoneText, parkingNotice || rule.timed ? 'warning' : 'success');
     }
-    setLocationCopy(
-      name ? `${name} (${code})` : `${code}`,
-      `${rule.short}. ${rule.detail}`
-    );
-    setMapStatus(
-      name ? `${name} (${code}): ${rule.short}.` : `${code}: ${rule.short}.`,
-      rule.timed ? 'warning' : 'success'
-    );
   } else {
     setLocationCopy('Du er uden for en beboerzone', 'Din GPS-position ligger ikke i en registreret beboerlicenszone i kommunens datasæt.');
     setMapStatus('GPS-positionen ligger uden for de viste beboerlicenszoner.', 'neutral');
@@ -685,11 +783,19 @@ async function loadZones({ fit = true } = {}) {
       const restrictions = timeRestrictionFeatures(payload);
       if (!features.length) throw new Error('Ingen beboerzoner i svaret');
 
-      zoneFeatures = features;
+      let frederiksbergFeature = null;
+      try {
+        const frPayload = await fetchJsonWithTimeout(FREDERIKSBERG_GEOJSON, 10000);
+        frederiksbergFeature = normalizeFrederiksbergFeature(frPayload);
+      } catch (frError) {
+        console.warn('Frederiksberg kommunegrænse kunne ikke hentes:', frError);
+      }
+
+      zoneFeatures = frederiksbergFeature ? [...features, frederiksbergFeature] : features;
       timeRestrictionFeaturesOnMap = restrictions;
       populateZoneSelect(features);
-      buildCompactZonePicker(features);
-      setDataState('ready', `${uniqueZoneOptions(features).length} zoner klar`);
+      buildCompactZonePicker(zoneFeatures);
+      setDataState('ready', `${uniqueZoneOptions(zoneFeatures).length} zoner klar`);
       redrawZones();
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
