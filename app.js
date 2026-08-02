@@ -299,7 +299,7 @@ function currentParkingNotice(code, now = new Date()) {
   }
 
   if (!isTimedLicenseZone(code) && isCopenhagenFirstHourFreeNow(now)) {
-    return 'Første time af dagens første registrerede parkering er gratis · registrering er stadig nødvendig.';
+    return '1. time gratis · gælder dagens første registrerede parkering · registrering er nødvendig.';
   }
 
   return '';
@@ -445,9 +445,11 @@ function updateSelectedZoneStatus(code) {
 
   const option = zoneSelect.options[zoneSelect.selectedIndex];
   const rule = zoneParkingRule(code);
+  const parkingNotice = currentParkingNotice(code);
+  const base = `${option?.text || code}: ${rule.short}. ${rule.detail}`;
   setMapStatus(
-    `${option?.text || code}: ${rule.short}. ${rule.detail}`,
-    rule.timed ? 'warning' : 'success'
+    parkingNotice ? `${parkingNotice} ${base}` : base,
+    parkingNotice || rule.timed ? 'warning' : 'success'
   );
 }
 
@@ -551,7 +553,9 @@ function updateZoneMessage(lat, lng, accuracy = currentAccuracy) {
     const parkingNotice = currentParkingNotice(code);
     setLocationCopy(
       name ? `${name} (${code})` : `${code}`,
-      `${rule.short}. ${rule.detail}${parkingNotice ? ` ${parkingNotice}` : ''}`
+      parkingNotice
+        ? `${parkingNotice} ${rule.short}. ${rule.detail}`
+        : `${rule.short}. ${rule.detail}`
     );
 
     if (edge) {
