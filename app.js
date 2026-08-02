@@ -225,6 +225,10 @@ document.addEventListener('click', (event) => {
 });
 
 
+function pointToSegmentMeters(lat,lng,a,b){const kx=111320*Math.cos(lat*Math.PI/180),ky=110540,ax=(a[0]-lng)*kx,ay=(a[1]-lat)*ky,bx=(b[0]-lng)*kx,by=(b[1]-lat)*ky,dx=bx-ax,dy=by-ay,d=dx*dx+dy*dy,t=d?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/d)):0;return Math.hypot(ax+t*dx,ay+t*dy);}
+function geometryBoundaryDistanceMeters(g,lat,lng){if(!g)return Infinity;const ps=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];let best=Infinity;for(const p of ps)for(const r of p)for(let i=1;i<r.length;i++)best=Math.min(best,pointToSegmentMeters(lat,lng,r[i-1],r[i]));return best;}
+function boundaryWarning(lat,lng,accuracy,currentCode){let edge=Infinity,neighbor=null,nd=Infinity;for(const f of zoneFeatures){const c=featureCode(f);if(!c)continue;const d=geometryBoundaryDistanceMeters(f.geometry,lat,lng);if(c===currentCode)edge=Math.min(edge,d);else if(d<nd){nd=d;neighbor=f;}}const threshold=Math.max(50,Math.min(150,accuracy*2));if(!Number.isFinite(edge)||edge>threshold)return null;return{distance:Math.round(edge),neighbor,uncertain:accuracy>=Math.max(25,edge)};}
+
 function styleForFeature(feature) {
   const selected = zoneSelect.value;
   const code = featureCode(feature);
@@ -236,15 +240,8 @@ function styleForFeature(feature) {
   const activeColor = timed ? '#a85f08' : '#a31963';
   const fillColor = timed ? '#f4a62a' : '#d43a86';
 
-  if (isSelected || isGps) {
-    return {
-      color: activeColor,
-      weight: 4,
-      opacity: 1,
-      fillColor,
-      fillOpacity: isSelected ? 0.22 : 0.14
-    };
-  }
+  if (isGps) return {color:'#18864b',weight:4.5,opacity:1,fillColor:'#35a765',fillOpacity:0.16};
+  if (isSelected) return {color:activeColor,weight:4,opacity:1,fillColor,fillOpacity:0.22};
 
   // Keep every other zone fully visible even when one zone is active.
   return {
@@ -452,6 +449,12 @@ function updateZoneMessage(lat, lng) {
     const code = activeGpsZoneCode || 'ukendt';
     const name = featureName(zone);
     const rule = zoneParkingRule(code);
+    const edge = boundaryWarning(lat, lng, accuracy, code);
+    if (edge) {
+      const nc=edge.neighbor?featureCode(edge.neighbor):'', nn=edge.neighbor?featureName(edge.neighbor):'';
+      const neighbor=nc?`${nn?`${nn} `:''}(${nc})`:'en anden zone';
+      setTimeout(()=>setMapStatus(`${edge.uncertain?'GPS-positionen ligger tæt på en zonegrænse':'Tæt på zonegrænse'}: ca. ${edge.distance} m til ${neighbor}. GPS ± ${Math.round(accuracy)} m. Tjek placering og skiltning.`,'warning'),0);
+    }
     setLocationCopy(
       name ? `${name} (${code})` : `${code}`,
       `${rule.short}. ${rule.detail}`
