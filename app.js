@@ -22,14 +22,31 @@ const PAYMENT_TARIFFS_2026 = Object.freeze({
 });
 
 function paymentZoneKey(feature) {
-  const text = Object.values(feature?.properties || {})
-    .map(v => String(v ?? '').toLowerCase())
-    .join(' ');
+  const values = Object.entries(feature?.properties || {}).map(([key, value]) => ({
+    key: String(key ?? '').toLowerCase(),
+    value: String(value ?? '').toLowerCase()
+  }));
+  const text = values.map(item => `${item.key} ${item.value}`).join(' ');
 
-  if (/\brød\b|\broed\b|\bred\b/.test(text)) return 'red';
-  if (/\bgrøn\b|\bgroen\b|\bgreen\b/.test(text)) return 'green';
-  if (/\bblå\b|\bblaa\b|\bblue\b/.test(text)) return 'blue';
-  if (/\bgul\b|\byellow\b/.test(text)) return 'yellow';
+  // Direct colour/name matching.
+  if (/\brød\b|\broed\b|\bred\b|rød zone|roed zone|red zone/.test(text)) return 'red';
+  if (/\bgrøn\b|\bgroen\b|\bgreen\b|grøn zone|groen zone|green zone/.test(text)) return 'green';
+  if (/\bblå\b|\bblaa\b|\bbla\b|\bblue\b|blå zone|blaa zone|blue zone|blã¥/.test(text)) return 'blue';
+  if (/\bgul\b|\byellow\b|gul zone|yellow zone/.test(text)) return 'yellow';
+
+  // Some GIS records expose the tariff rather than a colour name.
+  // 26 kr/t uniquely identifies the blue daytime zone; 17 identifies yellow.
+  const numericValues = values
+    .map(item => Number(String(item.value).replace(',', '.')))
+    .filter(Number.isFinite);
+
+  if (numericValues.includes(26)) return 'blue';
+  if (numericValues.includes(17)) return 'yellow';
+
+  // Common descriptive aliases sometimes used in parking/GIS datasets.
+  if (/mellemzone|mellem zone|medium zone/.test(text)) return 'blue';
+  if (/yderzone|ydre zone|outer zone/.test(text)) return 'yellow';
+
   return '';
 }
 
@@ -512,10 +529,10 @@ function drawPaymentZoneLayer() {
         const color = tariff?.color || '#667085';
         return {
           color,
-          weight: 2.2,
-          opacity: 0.82,
+          weight: 2.4,
+          opacity: 0.88,
           fillColor: color,
-          fillOpacity: 0.115
+          fillOpacity: 0.15
         };
       },
       onEachFeature(feature, layer) {
@@ -540,19 +557,30 @@ function ensureTariffLegend() {
   const legend = document.createElement('div');
   legend.id = 'tariffLegend';
   legend.style.cssText = [
-    'position:absolute','z-index:520','left:8px','top:8px',
-    'display:flex','gap:6px','flex-wrap:wrap','max-width:calc(100% - 150px)',
-    'padding:6px 7px','border:1px solid rgba(208,213,221,.9)',
-    'border-radius:10px','background:rgba(255,255,255,.96)',
-    'box-shadow:0 4px 12px rgba(16,24,40,.09)','font-size:9px',
-    'font-weight:780','color:#344054','pointer-events:none'
+    'position:absolute',
+    'z-index:520',
+    'top:8px',
+    'left:74px',
+    'display:flex',
+    'align-items:center',
+    'gap:7px',
+    'padding:5px 8px',
+    'border:1px solid rgba(208,213,221,.88)',
+    'border-radius:999px',
+    'background:rgba(255,255,255,.96)',
+    'box-shadow:0 4px 12px rgba(16,24,40,.08)',
+    'font-size:9px',
+    'font-weight:800',
+    'color:#344054',
+    'pointer-events:none',
+    'white-space:nowrap'
   ].join(';');
 
-  for (const key of ['red','green','blue','yellow']) {
+  for (const key of ['red', 'green', 'blue', 'yellow']) {
     const t = PAYMENT_TARIFFS_2026[key];
     const item = document.createElement('span');
-    item.style.cssText = 'display:inline-flex;align-items:center;gap:3px;white-space:nowrap';
-    item.innerHTML = `<i style="width:7px;height:7px;border-radius:50%;background:${t.color};display:inline-block"></i>${t.da} ${t.day}`;
+    item.style.cssText = 'display:inline-flex;align-items:center;gap:3px';
+    item.innerHTML = `<i style="width:7px;height:7px;border-radius:50%;background:${t.color};display:inline-block"></i>${t.day}`;
     legend.appendChild(item);
   }
 
