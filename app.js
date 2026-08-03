@@ -155,6 +155,7 @@ let zoneFeatures = [];
 let timeRestrictionFeaturesOnMap = [];
 let paymentZoneFeatures = [];
 let paymentZoneLayer = null;
+let activePaymentZoneLayer = null;
 let zoneLayer = null;
 let timeRestrictionLayer = null;
 let labelLayer = null;
@@ -471,8 +472,8 @@ function styleForFeature(feature) {
   if (isGps) {
     return {
       color: '#ffffff',
-      weight: 3.1,
-      opacity: 0.94,
+      weight: 1.8,
+      opacity: 0.72,
       fillOpacity: 0
     };
   }
@@ -515,6 +516,80 @@ function styleForFeature(feature) {
   };
 }
 
+
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects = ((yi > lat) !== (yj > lat)) &&
+      (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInGeometry(lng, lat, geometry) {
+  if (!geometry) return false;
+  const inPolygon = polygon => {
+    if (!polygon?.length || !pointInRing(lng, lat, polygon[0])) return false;
+    for (let i = 1; i < polygon.length; i++) {
+      if (pointInRing(lng, lat, polygon[i])) return false;
+    }
+    return true;
+  };
+  if (geometry.type === 'Polygon') return inPolygon(geometry.coordinates);
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some(inPolygon);
+  return false;
+}
+
+
+function highlightCurrentPaymentZone(lat, lng) {
+  if (activePaymentZoneLayer) {
+    map.removeLayer(activePaymentZoneLayer);
+    activePaymentZoneLayer = null;
+  }
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !paymentZoneFeatures.length) return;
+
+  const feature = paymentZoneFeatures.find(f =>
+    f?.geometry && pointInGeometry(lng, lat, f.geometry)
+  );
+  if (!feature) return;
+
+  const key = paymentZoneKey(feature);
+  const tariff = PAYMENT_TARIFFS_2026[key];
+  if (!tariff) return;
+
+  // Outer white halo + inner official colour.
+  const outer = L.geoJSON(feature, {
+    interactive: false,
+    style: {
+      color: '#ffffff',
+      weight: 6,
+      opacity: 0.96,
+      fillOpacity: 0
+    }
+  });
+
+  const inner = L.geoJSON(feature, {
+    interactive: false,
+    style: {
+      color: tariff.color,
+      weight: 3.6,
+      opacity: 1,
+      fillColor: tariff.color,
+      fillOpacity: 0.22
+    }
+  });
+
+  activePaymentZoneLayer = L.layerGroup([outer, inner]).addTo(map);
+
+  // Keep the highlight above the normal tariff polygons but below markers/tooltips.
+  outer.bringToFront?.();
+  inner.bringToFront?.();
+}
+
 function drawPaymentZoneLayer() {
   if (paymentZoneLayer) map.removeLayer(paymentZoneLayer);
   paymentZoneLayer = null;
@@ -529,10 +604,10 @@ function drawPaymentZoneLayer() {
         const color = tariff?.color || '#667085';
         return {
           color,
-          weight: 2.4,
-          opacity: 0.88,
+          weight: 2.5,
+          opacity: 0.9,
           fillColor: color,
-          fillOpacity: 0.15
+          fillOpacity: 0.16
         };
       },
       onEachFeature(feature, layer) {
@@ -815,6 +890,7 @@ function setUserPosition(position, recenter = true) {
   const { latitude, longitude, accuracy } = position.coords;
   currentPosition = [latitude, longitude];
   currentAccuracy = accuracy;
+  highlightCurrentPaymentZone(latitude, longitude);
   accuracyText.textContent = `GPS ± ${Math.round(accuracy)} m`;
   accuracyText.dataset.state = accuracy <= 30 ? 'good' : accuracy <= 80 ? 'ok' : 'weak';
   locateBtn.disabled = false;
@@ -1055,6 +1131,9 @@ async function loadZones({ fit = true } = {}) {
       setDataState('ready', `${uniqueZoneOptions(zoneFeatures).length} zoner klar`);
       redrawZones();
       ensureTariffLegend();
+      if (currentPosition) {
+        highlightCurrentPaymentZone(currentPosition[0], currentPosition[1]);
+      }
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
       setMapStatus('Zonekortet er klar. Orange zoner er gratis, men tidsbegrænsede. Tjek altid skiltningen.', 'success');
