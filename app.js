@@ -559,8 +559,17 @@ function styleForFeature(feature) {
   const isGps = Boolean(activeGpsZoneCode && code === activeGpsZoneCode);
   const isFrederiksberg = code === 'FR';
 
-  // The official tariff layer is the primary visual language for paid Copenhagen areas.
-  // Resident-zone geometry must therefore not cover it with magenta outlines/fills.
+  // Orange, tidsbegrænsede zoner must always remain visibly orange.
+  if (timed) {
+    return {
+      color: isSelected || isGps ? '#a85f08' : '#c87912',
+      weight: isSelected || isGps ? 3.4 : 2.1,
+      opacity: isSelected || isGps ? 1 : 0.88,
+      fillColor: '#f4a62a',
+      fillOpacity: isSelected || isGps ? 0.16 : 0.055
+    };
+  }
+
   if (isGps) {
     return {
       color: '#667085',
@@ -579,16 +588,6 @@ function styleForFeature(feature) {
     };
   }
 
-  if (timed) {
-    return {
-      color: '#c87912',
-      weight: 2.1,
-      opacity: 0.88,
-      fillColor: '#f4a62a',
-      fillOpacity: 0.055
-    };
-  }
-
   if (isFrederiksberg) {
     return {
       color: '#667085',
@@ -599,76 +598,13 @@ function styleForFeature(feature) {
     };
   }
 
-  // Paid Copenhagen resident zones: very subtle neutral boundary only.
+  // Paid Copenhagen resident zones: very subtle boundary.
   return {
     color: '#667085',
     weight: 0.45,
     opacity: 0.09,
     fillOpacity: 0
   };
-}
-
-
-function pointInRing(lng, lat, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    const intersects = ((yi > lat) !== (yj > lat)) &&
-      (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
-    if (intersects) inside = !inside;
-  }
-  return inside;
-}
-
-function pointInGeometry(lng, lat, geometry) {
-  if (!geometry) return false;
-  const inPolygon = polygon => {
-    if (!polygon?.length || !pointInRing(lng, lat, polygon[0])) return false;
-    for (let i = 1; i < polygon.length; i++) {
-      if (pointInRing(lng, lat, polygon[i])) return false;
-    }
-    return true;
-  };
-  if (geometry.type === 'Polygon') return inPolygon(geometry.coordinates);
-  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some(inPolygon);
-  return false;
-}
-
-
-function highlightCurrentLicenseZone(lat, lng) {
-  if (activeLicenseZoneLayer) {
-    map.removeLayer(activeLicenseZoneLayer);
-    activeLicenseZoneLayer = null;
-  }
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !zoneFeatures.length) return;
-
-  const licenseFeature = findZone(zoneFeatures, lat, lng);
-  if (!licenseFeature) return;
-
-  // Find the tariff colour at the GPS position.
-  const paymentFeature = paymentZoneFeatures.find(feature =>
-    feature?.geometry && pointInGeometry(lng, lat, feature.geometry)
-  );
-  const tariffKey = paymentFeature ? paymentZoneKey(paymentFeature) : '';
-  const tariff = PAYMENT_TARIFFS_2026[tariffKey];
-
-  // Use the same visual language as the tariff zone, but ONLY on the current licence zone.
-  const color = tariff?.color || '#667085';
-
-  activeLicenseZoneLayer = L.geoJSON(licenseFeature, {
-    interactive: false,
-    style: {
-      color,
-      weight: 3.6,
-      opacity: 1,
-      fillColor: color,
-      fillOpacity: 0.22
-    }
-  }).addTo(map);
-
-  activeLicenseZoneLayer.bringToFront?.();
 }
 
 function drawPaymentZoneLayer() {
