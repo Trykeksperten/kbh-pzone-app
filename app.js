@@ -121,14 +121,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap-bidragsydere'
 }).addTo(map);
 
-const officialPaymentWmsLayer = L.tileLayer.wms('https://wfs-kbhkort.kk.dk/k101/wms', {
-  layers: 'k101:betalingszone',
-  format: 'image/png',
-  transparent: true,
-  opacity: 0.52,
-  version: '1.1.1',
-  attribution: 'Københavns Kommune'
-}).addTo(map);
 
 const el = id => document.getElementById(id);
 const zoneTitle = el('zoneTitle');
@@ -461,21 +453,18 @@ function styleForFeature(feature) {
   // Resident-zone geometry must therefore not cover it with magenta outlines/fills.
   if (isGps) {
     return {
-      color: '#111827',
-      weight: 3.6,
-      opacity: 0.92,
-      dashArray: '8 5',
-      lineCap: 'round',
+      color: '#ffffff',
+      weight: 3.1,
+      opacity: 0.94,
       fillOpacity: 0
     };
   }
 
   if (isSelected) {
     return {
-      color: '#344054',
-      weight: 3,
-      opacity: 0.88,
-      dashArray: '4 4',
+      color: '#ffffff',
+      weight: 2.5,
+      opacity: 0.82,
       fillOpacity: 0
     };
   }
@@ -502,9 +491,9 @@ function styleForFeature(feature) {
 
   // Paid Copenhagen resident zones: very subtle neutral boundary only.
   return {
-    color: '#475467',
-    weight: 0.55,
-    opacity: 0.16,
+    color: '#667085',
+    weight: 0.45,
+    opacity: 0.09,
     fillOpacity: 0
   };
 }
@@ -523,10 +512,10 @@ function drawPaymentZoneLayer() {
         const color = tariff?.color || '#667085';
         return {
           color,
-          weight: 1.4,
-          opacity: 0.62,
+          weight: 2.2,
+          opacity: 0.82,
           fillColor: color,
-          fillOpacity: 0.025
+          fillOpacity: 0.115
         };
       },
       onEachFeature(feature, layer) {
@@ -552,18 +541,18 @@ function ensureTariffLegend() {
   legend.id = 'tariffLegend';
   legend.style.cssText = [
     'position:absolute','z-index:520','left:8px','top:8px',
-    'display:flex','gap:5px','flex-wrap:wrap','max-width:calc(100% - 180px)',
-    'padding:5px 6px','border:1px solid rgba(208,213,221,.85)',
-    'border-radius:9px','background:rgba(255,255,255,.93)',
-    'box-shadow:0 4px 12px rgba(16,24,40,.09)','font-size:8.5px',
-    'font-weight:750','color:#475467','pointer-events:none'
+    'display:flex','gap:6px','flex-wrap:wrap','max-width:calc(100% - 150px)',
+    'padding:6px 7px','border:1px solid rgba(208,213,221,.9)',
+    'border-radius:10px','background:rgba(255,255,255,.96)',
+    'box-shadow:0 4px 12px rgba(16,24,40,.09)','font-size:9px',
+    'font-weight:780','color:#344054','pointer-events:none'
   ].join(';');
 
   for (const key of ['red','green','blue','yellow']) {
     const t = PAYMENT_TARIFFS_2026[key];
     const item = document.createElement('span');
     item.style.cssText = 'display:inline-flex;align-items:center;gap:3px;white-space:nowrap';
-    item.innerHTML = `<i style="width:6px;height:6px;border-radius:50%;background:${t.color};display:inline-block"></i>${t.da} ${t.day}`;
+    item.innerHTML = `<i style="width:7px;height:7px;border-radius:50%;background:${t.color};display:inline-block"></i>${t.da} ${t.day}`;
     legend.appendChild(item);
   }
 
@@ -1083,6 +1072,15 @@ function updatePaymentMenuInfo() {
 
   let headline = `${name}${code === 'FR' ? '' : ` (${code})`}`;
   let text = notice || `${rule.short}. ${rule.detail}`;
+
+  if (!notice && code !== 'FR' && currentPosition) {
+    const paymentFeature = paymentZoneFeatures.find(feature =>
+      feature?.geometry && pointInGeometry(currentPosition[1], currentPosition[0], feature.geometry)
+    );
+    const tariffKey = paymentFeature ? paymentZoneKey(paymentFeature) : '';
+    const tariffText = tariffKey ? paymentTariffText(tariffKey) : '';
+    if (tariffText) text = `${tariffText}. ${rule.short}.`;
+  }
 
   info.innerHTML = `<strong style="display:block;margin-bottom:2px;color:#1d2939">${headline}</strong>${text}`;
 }
