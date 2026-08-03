@@ -607,6 +607,94 @@ function styleForFeature(feature) {
   };
 }
 
+
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+
+    const intersects =
+      ((yi > lat) !== (yj > lat)) &&
+      (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+function pointInGeometry(lng, lat, geometry) {
+  if (!geometry) return false;
+
+  const polygonContainsPoint = polygon => {
+    if (!polygon?.length || !pointInRing(lng, lat, polygon[0])) return false;
+
+    // Holes inside a polygon must not count as part of the zone.
+    for (let i = 1; i < polygon.length; i++) {
+      if (pointInRing(lng, lat, polygon[i])) return false;
+    }
+
+    return true;
+  };
+
+  if (geometry.type === 'Polygon') {
+    return polygonContainsPoint(geometry.coordinates);
+  }
+
+  if (geometry.type === 'MultiPolygon') {
+    return geometry.coordinates.some(polygonContainsPoint);
+  }
+
+  return false;
+}
+
+function highlightCurrentLicenseZone(lat, lng) {
+  if (activeLicenseZoneLayer) {
+    map.removeLayer(activeLicenseZoneLayer);
+    activeLicenseZoneLayer = null;
+  }
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !zoneFeatures.length) {
+    return;
+  }
+
+  // IMPORTANT: highlight the actual licence zone (CH, VB, GJ, etc.),
+  // never the whole tariff zone.
+  const licenseFeature = findZone(zoneFeatures, lat, lng);
+  if (!licenseFeature) return;
+
+  const code = featureCode(licenseFeature);
+  const timed = isTimedLicenseZone(code);
+
+  // Use orange for time-limited/free licence zones.
+  // Otherwise use the tariff colour at the exact GPS position when available.
+  let color = timed ? '#f4a62a' : '#667085';
+
+  if (!timed && code !== 'FR') {
+    const paymentFeature = paymentZoneFeatures.find(feature =>
+      feature?.geometry && pointInGeometry(lng, lat, feature.geometry)
+    );
+    const tariffKey = paymentFeature ? paymentZoneKey(paymentFeature) : '';
+    const tariff = PAYMENT_TARIFFS_2026[tariffKey];
+    if (tariff) color = tariff.color;
+  }
+
+  activeLicenseZoneLayer = L.geoJSON(licenseFeature, {
+    interactive: false,
+    style: {
+      color,
+      weight: 3.6,
+      opacity: 1,
+      fillColor: color,
+      fillOpacity: 0.22
+    }
+  }).addTo(map);
+
+  activeLicenseZoneLayer.bringToFront?.();
+}
+
 function drawPaymentZoneLayer() {
   if (paymentZoneLayer) map.removeLayer(paymentZoneLayer);
   paymentZoneLayer = null;
