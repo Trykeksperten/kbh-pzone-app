@@ -65,6 +65,35 @@ function paymentTariffText(key, now = new Date()) {
   return `${tariff.da} betalingszone · ${tariff[period]} kr./t nu (${label})`;
 }
 
+
+function tariffKeyAtLatLng(latlng) {
+  if (!latlng || !paymentZoneFeatures.length) return '';
+  const feature = paymentZoneFeatures.find(payment =>
+    payment?.geometry && pointInGeometry(latlng.lng, latlng.lat, payment.geometry)
+  );
+  return feature ? paymentZoneKey(feature) : '';
+}
+
+function timedZoneTooltipHtml(code, name) {
+  const rule = TIME_LIMIT_RULES[code];
+  const title = name ? `${name} (${code})` : code;
+  if (!rule) {
+    return `<strong>${title}</strong><br>Gratis · tidsbegrænset parkering<br>Tjek lokal skiltning.`;
+  }
+
+  const hoursText = rule.hours === 1 ? '1 time' : `${rule.hours} timer`;
+  const dayText = rule.days || 'hverdage';
+  const windowText = rule.window || '';
+
+  return [
+    `<strong>${title}</strong>`,
+    `<strong>Gratis · maks. ${hoursText}</strong>`,
+    `${dayText}${windowText ? ` kl. ${windowText}` : ''}`,
+    `<span>Kan ikke forlænges mod betaling i tidsbegrænsningens tidsrum.</span>`,
+    `<span>Gyldig licens til zonen kan fritage fra tidsbegrænsningen. Tjek altid skiltningen.</span>`
+  ].join('<br>');
+}
+
 function tariffScheduleHtml(key) {
   const tariff = PAYMENT_TARIFFS_2026[key];
   if (!tariff) return '';
@@ -804,16 +833,12 @@ function redrawZones() {
       const code = featureCode(feature) || 'Ukendt zone';
       const name = featureName(feature);
       const rule = zoneParkingRule(code);
-      const tariffKey = !rule.timed && code !== 'FR'
-        ? tariffKeyForResidentFeature(feature)
-        : '';
-
-      const tooltipHtml = tariffKey
-        ? `<strong>${name ? `${name} (${code})` : code}</strong><br>${tariffScheduleHtml(tariffKey)}`
-        : `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}${rule.timed ? `<br><span>${compactRuleLabel(code)}</span>` : ''}`;
+      const initialTooltipHtml = rule.timed
+        ? timedZoneTooltipHtml(code, name)
+        : `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}`;
 
       layer.bindTooltip(
-        tooltipHtml,
+        initialTooltipHtml,
         {
           sticky: false,
           permanent: false,
@@ -826,19 +851,30 @@ function redrawZones() {
       layer.on('click', event => {
         const wasPinned = pinnedZoneCode === code;
 
-        // Luk en eventuel tidligere fast infoboks uden at genopbygge kortlaget.
         closePinnedZoneTooltip();
 
-        // Hold "Se zone" synkroniseret med det, brugeren trykker på.
         zoneSelect.value = code;
         syncZonePickerLabel();
 
         if (!wasPinned) {
+          let html;
+
+          if (rule.timed) {
+            html = timedZoneTooltipHtml(code, name);
+          } else if (code === 'FR') {
+            html = `<strong>Frederiksberg</strong><br>${zoneParkingRule('FR').detail}`;
+          } else {
+            const exactTariffKey = tariffKeyAtLatLng(event.latlng);
+            html = exactTariffKey
+              ? `<strong>${name ? `${name} (${code})` : code}</strong><br>${tariffScheduleHtml(exactTariffKey)}`
+              : `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}<br><span>Priszone kunne ikke bestemmes på dette punkt. Tjek skiltningen.</span>`;
+          }
+
+          layer.setTooltipContent(html);
           pinnedZoneCode = code;
           layer.openTooltip(event.latlng);
         }
 
-        // Opdater kun styles/labels. Selve polygonlaget bliver stående urørt.
         refreshZonePresentation();
         updateSelectedZoneStatus(code);
       });
