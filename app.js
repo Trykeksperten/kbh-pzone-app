@@ -81,10 +81,11 @@ function ensureCompactTooltipStyle() {
   style.id = 'compactTooltipStyle';
   style.textContent = `
     .leaflet-tooltip {
-      max-width: 220px !important;
+      max-width: 245px !important;
       white-space: normal !important;
       line-height: 1.28 !important;
       font-size: 10.5px !important;
+      overflow: visible !important;
       padding: 7px 9px !important;
     }
     .leaflet-tooltip strong {
@@ -110,12 +111,18 @@ function timedZoneTooltipHtml(code, name) {
   const hoursText = rule.hours === 1 ? '1 time' : `${rule.hours} timer`;
   const timeText = `${rule.days || 'hverdage'}${rule.window ? ` · ${rule.window}` : ''}`;
 
+  const endTime = rule.window && rule.window.includes('–')
+    ? rule.window.split('–').pop().trim()
+    : '';
+
   return [
     `<strong>${title}</strong>`,
     `<strong>Gratis · maks. ${hoursText}</strong>`,
     `<span>${timeText}</span>`,
-    `<span>Kan ikke forlænges mod betaling</span>`
-  ].join('<br>');
+    `<span>Efter ${hoursText}: bilen skal flyttes</span>`,
+    endTime ? `<strong>Efter kl. ${endTime}: gratis uden tidsbegrænsning</strong>` : '',
+    `<span>Kan ikke forlænges mod betaling · tjek skiltning</span>`
+  ].filter(Boolean).join('<br>');
 }
 
 function tariffScheduleHtml(key) {
