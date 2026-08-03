@@ -422,28 +422,60 @@ function styleForFeature(feature) {
   const selected = zoneSelect.value;
   const code = featureCode(feature);
   const timed = isTimedLicenseZone(code);
-  const isSelected = selected && code === selected;
-  const isGps = activeGpsZoneCode && code === activeGpsZoneCode;
-
+  const isSelected = Boolean(selected && code === selected);
+  const isGps = Boolean(activeGpsZoneCode && code === activeGpsZoneCode);
   const isFrederiksberg = code === 'FR';
-  const baseColor = isFrederiksberg ? '#52647a' : (timed ? '#c87912' : '#b52b72');
-  const activeColor = isFrederiksberg ? '#34465d' : (timed ? '#a85f08' : '#a31963');
-  const fillColor = isFrederiksberg ? '#7890aa' : (timed ? '#f4a62a' : '#d43a86');
 
-  if (isGps) return {color:'#18864b',weight:4.5,opacity:1,fillColor:'#35a765',fillOpacity:0.16};
-  if (isSelected) return {color:activeColor,weight:4,opacity:1,fillColor,fillOpacity:0.22};
+  // The official tariff layer is the primary visual language for paid Copenhagen areas.
+  // Resident-zone geometry must therefore not cover it with magenta outlines/fills.
+  if (isGps) {
+    return {
+      color: '#1f2937',
+      weight: 3.2,
+      opacity: 0.9,
+      dashArray: '7 5',
+      fillOpacity: 0
+    };
+  }
 
-  // Keep every other zone fully visible even when one zone is active.
+  if (isSelected) {
+    return {
+      color: '#344054',
+      weight: 3,
+      opacity: 0.88,
+      dashArray: '4 4',
+      fillOpacity: 0
+    };
+  }
+
+  if (timed) {
+    return {
+      color: '#c87912',
+      weight: 2.1,
+      opacity: 0.88,
+      fillColor: '#f4a62a',
+      fillOpacity: 0.055
+    };
+  }
+
+  if (isFrederiksberg) {
+    return {
+      color: '#667085',
+      weight: 1.5,
+      opacity: 0.6,
+      fillColor: '#7890aa',
+      fillOpacity: 0.035
+    };
+  }
+
+  // Paid Copenhagen resident zones: very subtle neutral boundary only.
   return {
-    color: baseColor,
-    weight: 2.25,
-    opacity: 0.86,
-    fillColor,
-    fillOpacity: timed ? 0.055 : (code === 'FR' ? 0.055 : 0.015)
+    color: '#667085',
+    weight: 0.9,
+    opacity: 0.28,
+    fillOpacity: 0
   };
 }
-
-
 
 function drawPaymentZoneLayer() {
   if (paymentZoneLayer) map.removeLayer(paymentZoneLayer);
@@ -459,10 +491,10 @@ function drawPaymentZoneLayer() {
         const color = tariff?.color || '#667085';
         return {
           color,
-          weight: 2.6,
+          weight: 2.8,
           opacity: 0.92,
           fillColor: color,
-          fillOpacity: 0.16
+          fillOpacity: 0.19
         };
       },
       onEachFeature(feature, layer) {
@@ -559,8 +591,7 @@ function addZoneLabels() {
       keyboard: false,
       icon: L.divIcon({
         className: 'zone-label-wrap',
-        html: `<span class="zone-label${isSelected || isGps ? ' is-active' : ''}">${code}</span>`,
-        iconSize: [48, 28],
+        html: `<span class="zone-label${isSelected || isGps ? ' is-active' : ''}"${isSelected || isGps ? ' style="background:#ffffff;color:#1f2937;border-color:#1f2937;box-shadow:0 3px 10px rgba(16,24,40,.14)"' : ''}>${code}</span>`,         iconSize: [48, 28],
         iconAnchor: [24, 14]
       })
     }).addTo(labelLayer);
