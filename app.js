@@ -9,8 +9,44 @@ import {
 
 const DATA_API = '/api/zones';
 const DIRECT_WFS = 'https://wfs-kbhkort.kk.dk/k101/ows?outputFormat=application%2Fjson&request=GetFeature&service=WFS&srsname=EPSG%3A4326&typeName=k101%3Ap_zoner_kbh&version=1.0.0';
+const PAYMENT_WFS = 'https://wfs-kbhkort.kk.dk/k101/ows?outputFormat=application%2Fjson&request=GetFeature&service=WFS&srsname=EPSG%3A4326&typeName=k101%3Abetalingszone&version=1.0.0';
 const COPENHAGEN_CENTER = [55.6761, 12.5683];
 const FREDERIKSBERG_GEOJSON = 'https://api.dataforsyningen.dk/kommuner/0147?format=geojson';
+
+
+const PAYMENT_TARIFFS_2026 = Object.freeze({
+  red:    { da: 'Rød',   color: '#d92d20', day: 45, evening: 18, night: 6 },
+  green:  { da: 'Grøn',  color: '#299764', day: 45, evening: 18, night: 6 },
+  blue:   { da: 'Blå',   color: '#2878c8', day: 26, evening: 18, night: 6 },
+  yellow: { da: 'Gul',   color: '#d7a900', day: 17, evening: 18, night: 6 }
+});
+
+function paymentZoneKey(feature) {
+  const text = Object.values(feature?.properties || {})
+    .map(v => String(v ?? '').toLowerCase())
+    .join(' ');
+
+  if (/\brød\b|\broed\b|\bred\b/.test(text)) return 'red';
+  if (/\bgrøn\b|\bgroen\b|\bgreen\b/.test(text)) return 'green';
+  if (/\bblå\b|\bblaa\b|\bblue\b/.test(text)) return 'blue';
+  if (/\bgul\b|\byellow\b/.test(text)) return 'yellow';
+  return '';
+}
+
+function currentTariffPeriod(now = new Date()) {
+  const h = now.getHours();
+  if (h >= 8 && h < 18) return 'day';
+  if (h >= 18 && h < 23) return 'evening';
+  return 'night';
+}
+
+function paymentTariffText(key, now = new Date()) {
+  const tariff = PAYMENT_TARIFFS_2026[key];
+  if (!tariff) return '';
+  const period = currentTariffPeriod(now);
+  const label = period === 'day' ? 'kl. 08–18' : period === 'evening' ? 'kl. 18–23' : 'kl. 23–08';
+  return `${tariff.da} betalingszone · ${tariff[period]} kr./t nu (${label})`;
+}
 
 const TIME_LIMIT_RULES = Object.freeze({
   GJ: { hours: 3, window: '08–19', days: 'hverdage' },
@@ -99,6 +135,8 @@ const mapStatus = el('mapStatus');
 
 let zoneFeatures = [];
 let timeRestrictionFeaturesOnMap = [];
+let paymentZoneFeatures = [];
+let paymentZoneLayer = null;
 let zoneLayer = null;
 let timeRestrictionLayer = null;
 let labelLayer = null;
@@ -401,10 +439,72 @@ function styleForFeature(feature) {
     weight: 2.25,
     opacity: 0.86,
     fillColor,
-    fillOpacity: 0.055
+    fillOpacity: timed ? 0.055 : (code === 'FR' ? 0.055 : 0.015)
   };
 }
 
+
+
+function drawPaymentZoneLayer() {
+  if (paymentZoneLayer) map.removeLayer(paymentZoneLayer);
+  paymentZoneLayer = null;
+  if (!paymentZoneFeatures.length) return;
+
+  paymentZoneLayer = L.geoJSON(
+    { type: 'FeatureCollection', features: paymentZoneFeatures },
+    {
+      style(feature) {
+        const key = paymentZoneKey(feature);
+        const tariff = PAYMENT_TARIFFS_2026[key];
+        const color = tariff?.color || '#667085';
+        return {
+          color,
+          weight: 2.6,
+          opacity: 0.92,
+          fillColor: color,
+          fillOpacity: 0.16
+        };
+      },
+      onEachFeature(feature, layer) {
+        const key = paymentZoneKey(feature);
+        if (!key) return;
+        const tariff = PAYMENT_TARIFFS_2026[key];
+        layer.bindTooltip(
+          `<strong>${tariff.da} betalingszone</strong><br>${paymentTariffText(key)}<br><span>2026: dag ${tariff.day} · aften ${tariff.evening} · nat ${tariff.night} kr./t</span>`,
+          { sticky: true, direction: 'top', opacity: 0.97 }
+        );
+      }
+    }
+  ).addTo(map);
+
+  if (paymentZoneLayer.bringToBack) paymentZoneLayer.bringToBack();
+}
+
+function ensureTariffLegend() {
+  const mapStage = document.querySelector('.map-stage');
+  if (!mapStage || document.getElementById('tariffLegend')) return;
+
+  const legend = document.createElement('div');
+  legend.id = 'tariffLegend';
+  legend.style.cssText = [
+    'position:absolute','z-index:520','left:8px','top:8px',
+    'display:flex','gap:5px','flex-wrap:wrap','max-width:calc(100% - 180px)',
+    'padding:5px 6px','border:1px solid rgba(208,213,221,.85)',
+    'border-radius:9px','background:rgba(255,255,255,.93)',
+    'box-shadow:0 4px 12px rgba(16,24,40,.09)','font-size:8.5px',
+    'font-weight:750','color:#475467','pointer-events:none'
+  ].join(';');
+
+  for (const key of ['red','green','blue','yellow']) {
+    const t = PAYMENT_TARIFFS_2026[key];
+    const item = document.createElement('span');
+    item.style.cssText = 'display:inline-flex;align-items:center;gap:3px;white-space:nowrap';
+    item.innerHTML = `<i style="width:6px;height:6px;border-radius:50%;background:${t.color};display:inline-block"></i>${t.da} ${t.day}`;
+    legend.appendChild(item);
+  }
+
+  mapStage.appendChild(legend);
+}
 
 function drawTimeRestrictionLayer() {
   if (timeRestrictionLayer) map.removeLayer(timeRestrictionLayer);
@@ -519,6 +619,7 @@ function redrawZones() {
 
   if (!zonesToggle.checked || !zoneFeatures.length) return;
 
+  drawPaymentZoneLayer();
   drawTimeRestrictionLayer();
 
   zoneLayer = L.geoJSON({ type: 'FeatureCollection', features: zoneFeatures }, {
@@ -847,6 +948,18 @@ async function loadZones({ fit = true } = {}) {
       const restrictions = timeRestrictionFeatures(payload);
       if (!features.length) throw new Error('Ingen beboerzoner i svaret');
 
+      try {
+        const paymentPayload = await fetchJsonWithTimeout(PAYMENT_WFS, 12000);
+        paymentZoneFeatures = (paymentPayload?.features || []).filter(feature =>
+          feature?.geometry &&
+          ['Polygon', 'MultiPolygon'].includes(feature.geometry.type) &&
+          paymentZoneKey(feature)
+        );
+      } catch (paymentError) {
+        paymentZoneFeatures = [];
+        console.warn('Betalingszoner kunne ikke hentes:', paymentError);
+      }
+
       let frederiksbergFeature = null;
       try {
         const frPayload = await fetchJsonWithTimeout(FREDERIKSBERG_GEOJSON, 10000);
@@ -861,6 +974,7 @@ async function loadZones({ fit = true } = {}) {
       buildCompactZonePicker(zoneFeatures);
       setDataState('ready', `${uniqueZoneOptions(zoneFeatures).length} zoner klar`);
       redrawZones();
+      ensureTariffLegend();
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
       setMapStatus('Zonekortet er klar. Orange zoner er gratis, men tidsbegrænsede. Tjek altid skiltningen.', 'success');
