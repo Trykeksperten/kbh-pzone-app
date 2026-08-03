@@ -121,6 +121,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap-bidragsydere'
 }).addTo(map);
 
+const officialPaymentWmsLayer = L.tileLayer.wms('https://wfs-kbhkort.kk.dk/k101/wms', {
+  layers: 'k101:betalingszone',
+  format: 'image/png',
+  transparent: true,
+  opacity: 0.52,
+  version: '1.1.1',
+  attribution: 'Københavns Kommune'
+}).addTo(map);
+
 const el = id => document.getElementById(id);
 const zoneTitle = el('zoneTitle');
 const zoneText = el('zoneText');
@@ -355,28 +364,50 @@ function addDays(date, days) {
 
 function isFrederiksbergFreeDay(now = new Date()) {
   if (now.getDay() === 0) return true;
+
   const y = now.getFullYear();
   const easter = easterSunday(y);
-  const free = [
-    new Date(y,0,1), new Date(y,5,5), new Date(y,11,24), new Date(y,11,25), new Date(y,11,26),
-    addDays(easter,-3), addDays(easter,-2), easter, addDays(easter,1),
-    addDays(easter,39), addDays(easter,49), addDays(easter,50)
+  const publicHolidays = [
+    new Date(y, 0, 1),
+    addDays(easter, -3),
+    addDays(easter, -2),
+    easter,
+    addDays(easter, 1),
+    addDays(easter, 39),
+    addDays(easter, 49),
+    addDays(easter, 50),
+    new Date(y, 11, 25),
+    new Date(y, 11, 26)
   ];
-  return free.some(d => dateKey(d) === dateKey(now));
+
+  return publicHolidays.some(d => dateKey(d) === dateKey(now));
 }
 
 function isCopenhagenFirstHourFreeNow(now = new Date()) {
-  const day = now.getDay(), hour = now.getHours();
-  if ((day === 6 && hour >= 17) || day === 0 || (day === 1 && hour < 8)) return true;
+  const day = now.getDay();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+
+  // Official weekend rule: Saturday 17:00 through Monday 08:00.
+  if (day === 6 && minutes >= 17 * 60) return true;
+  if (day === 0) return true;
+  if (day === 1 && minutes < 8 * 60) return true;
 
   const y = now.getFullYear();
   const easter = easterSunday(y);
-  const specialDays = [
-    new Date(y,0,1), new Date(y,5,5), new Date(y,11,24), new Date(y,11,25), new Date(y,11,26),
-    addDays(easter,-3), addDays(easter,-2), easter, addDays(easter,1),
-    addDays(easter,39), addDays(easter,49), addDays(easter,50)
+  const publicHolidays = [
+    new Date(y, 0, 1),       // Nytårsdag
+    addDays(easter, -3),     // Skærtorsdag
+    addDays(easter, -2),     // Langfredag
+    easter,                  // Påskedag
+    addDays(easter, 1),      // 2. påskedag
+    addDays(easter, 39),     // Kristi Himmelfartsdag
+    addDays(easter, 49),     // Pinsedag
+    addDays(easter, 50),     // 2. pinsedag
+    new Date(y, 11, 25),     // Juledag
+    new Date(y, 11, 26)      // 2. juledag
   ];
-  return specialDays.some(d => dateKey(d) === dateKey(now));
+
+  return publicHolidays.some(d => dateKey(d) === dateKey(now));
 }
 
 function currentParkingNotice(code, now = new Date()) {
@@ -430,10 +461,11 @@ function styleForFeature(feature) {
   // Resident-zone geometry must therefore not cover it with magenta outlines/fills.
   if (isGps) {
     return {
-      color: '#1f2937',
-      weight: 3.2,
-      opacity: 0.9,
-      dashArray: '7 5',
+      color: '#111827',
+      weight: 3.6,
+      opacity: 0.92,
+      dashArray: '8 5',
+      lineCap: 'round',
       fillOpacity: 0
     };
   }
@@ -470,9 +502,9 @@ function styleForFeature(feature) {
 
   // Paid Copenhagen resident zones: very subtle neutral boundary only.
   return {
-    color: '#667085',
-    weight: 0.9,
-    opacity: 0.28,
+    color: '#475467',
+    weight: 0.55,
+    opacity: 0.16,
     fillOpacity: 0
   };
 }
@@ -491,10 +523,10 @@ function drawPaymentZoneLayer() {
         const color = tariff?.color || '#667085';
         return {
           color,
-          weight: 2.8,
-          opacity: 0.92,
+          weight: 1.4,
+          opacity: 0.62,
           fillColor: color,
-          fillOpacity: 0.19
+          fillOpacity: 0.025
         };
       },
       onEachFeature(feature, layer) {
