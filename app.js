@@ -74,23 +74,47 @@ function tariffKeyAtLatLng(latlng) {
   return feature ? paymentZoneKey(feature) : '';
 }
 
+
+function ensureCompactTooltipStyle() {
+  if (document.getElementById('compactTooltipStyle')) return;
+  const style = document.createElement('style');
+  style.id = 'compactTooltipStyle';
+  style.textContent = `
+    .leaflet-tooltip {
+      max-width: 220px !important;
+      white-space: normal !important;
+      line-height: 1.28 !important;
+      font-size: 10.5px !important;
+      padding: 7px 9px !important;
+    }
+    .leaflet-tooltip strong {
+      font-size: 11px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+ensureCompactTooltipStyle();
+
 function timedZoneTooltipHtml(code, name) {
   const rule = TIME_LIMIT_RULES[code];
   const title = name ? `${name} (${code})` : code;
+
   if (!rule) {
-    return `<strong>${title}</strong><br>Gratis · tidsbegrænset parkering<br>Tjek lokal skiltning.`;
+    return [
+      `<strong>${title}</strong>`,
+      `<strong>Gratis · tidsbegrænset</strong>`,
+      `<span>Tjek skiltningen</span>`
+    ].join('<br>');
   }
 
   const hoursText = rule.hours === 1 ? '1 time' : `${rule.hours} timer`;
-  const dayText = rule.days || 'hverdage';
-  const windowText = rule.window || '';
+  const timeText = `${rule.days || 'hverdage'}${rule.window ? ` · ${rule.window}` : ''}`;
 
   return [
     `<strong>${title}</strong>`,
     `<strong>Gratis · maks. ${hoursText}</strong>`,
-    `${dayText}${windowText ? ` kl. ${windowText}` : ''}`,
-    `<span>Kan ikke forlænges mod betaling i tidsbegrænsningens tidsrum.</span>`,
-    `<span>Gyldig licens til zonen kan fritage fra tidsbegrænsningen. Tjek altid skiltningen.</span>`
+    `<span>${timeText}</span>`,
+    `<span>Kan ikke forlænges mod betaling</span>`
   ].join('<br>');
 }
 
