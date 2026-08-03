@@ -1190,7 +1190,9 @@ async function loadZones({ fit = true } = {}) {
   setDataState('loading', 'Henter zoner…');
   setMapStatus('Henter de officielle beboerlicenszoner…');
 
-  const endpoints = [DATA_API, DIRECT_WFS];
+  // Brug kommunens direkte WFS først, så nye/komplette licenszoner som GJ
+  // ikke skjules af et ældre cachet API-svar. API bruges kun som fallback.
+  const endpoints = [DIRECT_WFS, DATA_API];
   let lastError = null;
 
   for (const endpoint of endpoints) {
