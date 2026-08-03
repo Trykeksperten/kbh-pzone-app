@@ -65,6 +65,38 @@ function paymentTariffText(key, now = new Date()) {
   return `${tariff.da} betalingszone · ${tariff[period]} kr./t nu (${label})`;
 }
 
+function tariffScheduleHtml(key) {
+  const tariff = PAYMENT_TARIFFS_2026[key];
+  if (!tariff) return '';
+  return [
+    `<strong>${tariff.da} betalingszone</strong>`,
+    `08–18: <strong>${tariff.day} kr./t</strong>`,
+    `18–23: <strong>${tariff.evening} kr./t</strong>`,
+    `23–08: <strong>${tariff.night} kr./t</strong>`
+  ].join('<br>');
+}
+
+function featureCenterLatLng(feature) {
+  try {
+    const layer = L.geoJSON(feature);
+    const bounds = layer.getBounds();
+    return bounds.isValid() ? bounds.getCenter() : null;
+  } catch {
+    return null;
+  }
+}
+
+function tariffKeyForResidentFeature(feature) {
+  const center = featureCenterLatLng(feature);
+  if (!center) return '';
+  const paymentFeature = paymentZoneFeatures.find(payment =>
+    payment?.geometry && pointInGeometry(center.lng, center.lat, payment.geometry)
+  );
+  return paymentFeature ? paymentZoneKey(paymentFeature) : '';
+}
+
+
+
 const TIME_LIMIT_RULES = Object.freeze({
   GJ: { hours: 3, window: '08–19', days: 'hverdage' },
   HS: { hours: 3, window: '08–19', days: 'hverdage' },
@@ -155,7 +187,7 @@ let zoneFeatures = [];
 let timeRestrictionFeaturesOnMap = [];
 let paymentZoneFeatures = [];
 let paymentZoneLayer = null;
-let activePaymentZoneLayer = null;
+let activeLicenseZoneLayer = null;
 let zoneLayer = null;
 let timeRestrictionLayer = null;
 let labelLayer = null;
@@ -471,9 +503,9 @@ function styleForFeature(feature) {
   // Resident-zone geometry must therefore not cover it with magenta outlines/fills.
   if (isGps) {
     return {
-      color: '#ffffff',
-      weight: 1.8,
-      opacity: 0.72,
+      color: '#667085',
+      weight: 0.8,
+      opacity: 0.18,
       fillOpacity: 0
     };
   }
@@ -544,50 +576,39 @@ function pointInGeometry(lng, lat, geometry) {
 }
 
 
-function highlightCurrentPaymentZone(lat, lng) {
-  if (activePaymentZoneLayer) {
-    map.removeLayer(activePaymentZoneLayer);
-    activePaymentZoneLayer = null;
+function highlightCurrentLicenseZone(lat, lng) {
+  if (activeLicenseZoneLayer) {
+    map.removeLayer(activeLicenseZoneLayer);
+    activeLicenseZoneLayer = null;
   }
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !paymentZoneFeatures.length) return;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !zoneFeatures.length) return;
 
-  const feature = paymentZoneFeatures.find(f =>
-    f?.geometry && pointInGeometry(lng, lat, f.geometry)
+  const licenseFeature = findZone(zoneFeatures, lat, lng);
+  if (!licenseFeature) return;
+
+  // Find the tariff colour at the GPS position.
+  const paymentFeature = paymentZoneFeatures.find(feature =>
+    feature?.geometry && pointInGeometry(lng, lat, feature.geometry)
   );
-  if (!feature) return;
+  const tariffKey = paymentFeature ? paymentZoneKey(paymentFeature) : '';
+  const tariff = PAYMENT_TARIFFS_2026[tariffKey];
 
-  const key = paymentZoneKey(feature);
-  const tariff = PAYMENT_TARIFFS_2026[key];
-  if (!tariff) return;
+  // Use the same visual language as the tariff zone, but ONLY on the current licence zone.
+  const color = tariff?.color || '#667085';
 
-  // Outer white halo + inner official colour.
-  const outer = L.geoJSON(feature, {
+  activeLicenseZoneLayer = L.geoJSON(licenseFeature, {
     interactive: false,
     style: {
-      color: '#ffffff',
-      weight: 6,
-      opacity: 0.96,
-      fillOpacity: 0
-    }
-  });
-
-  const inner = L.geoJSON(feature, {
-    interactive: false,
-    style: {
-      color: tariff.color,
+      color,
       weight: 3.6,
       opacity: 1,
-      fillColor: tariff.color,
+      fillColor: color,
       fillOpacity: 0.22
     }
-  });
+  }).addTo(map);
 
-  activePaymentZoneLayer = L.layerGroup([outer, inner]).addTo(map);
-
-  // Keep the highlight above the normal tariff polygons but below markers/tooltips.
-  outer.bringToFront?.();
-  inner.bringToFront?.();
+  activeLicenseZoneLayer.bringToFront?.();
 }
 
 function drawPaymentZoneLayer() {
@@ -615,7 +636,7 @@ function drawPaymentZoneLayer() {
         if (!key) return;
         const tariff = PAYMENT_TARIFFS_2026[key];
         layer.bindTooltip(
-          `<strong>${tariff.da} betalingszone</strong><br>${paymentTariffText(key)}<br><span>2026: dag ${tariff.day} · aften ${tariff.evening} · nat ${tariff.night} kr./t</span>`,
+          tariffScheduleHtml(key),
           { sticky: true, direction: 'top', opacity: 0.97 }
         );
       }
@@ -783,8 +804,16 @@ function redrawZones() {
       const code = featureCode(feature) || 'Ukendt zone';
       const name = featureName(feature);
       const rule = zoneParkingRule(code);
+      const tariffKey = !rule.timed && code !== 'FR'
+        ? tariffKeyForResidentFeature(feature)
+        : '';
+
+      const tooltipHtml = tariffKey
+        ? `<strong>${name ? `${name} (${code})` : code}</strong><br>${tariffScheduleHtml(tariffKey)}`
+        : `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}${rule.timed ? `<br><span>${compactRuleLabel(code)}</span>` : ''}`;
+
       layer.bindTooltip(
-        `<strong>${name ? `${name} (${code})` : code}</strong><br>${rule.short}${rule.timed ? `<br><span>${compactRuleLabel(code)}</span>` : ''}`,
+        tooltipHtml,
         {
           sticky: false,
           permanent: false,
@@ -890,7 +919,7 @@ function setUserPosition(position, recenter = true) {
   const { latitude, longitude, accuracy } = position.coords;
   currentPosition = [latitude, longitude];
   currentAccuracy = accuracy;
-  highlightCurrentPaymentZone(latitude, longitude);
+  highlightCurrentLicenseZone(latitude, longitude);
   accuracyText.textContent = `GPS ± ${Math.round(accuracy)} m`;
   accuracyText.dataset.state = accuracy <= 30 ? 'good' : accuracy <= 80 ? 'ok' : 'weak';
   locateBtn.disabled = false;
@@ -1132,7 +1161,7 @@ async function loadZones({ fit = true } = {}) {
       redrawZones();
       ensureTariffLegend();
       if (currentPosition) {
-        highlightCurrentPaymentZone(currentPosition[0], currentPosition[1]);
+        highlightCurrentLicenseZone(currentPosition[0], currentPosition[1]);
       }
 
       if (fit && zoneLayer) map.fitBounds(zoneLayer.getBounds(), { padding: [12, 12], maxZoom: 12 });
